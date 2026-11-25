@@ -1,0 +1,150 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand-900: #18254f;
+  --color-brand-600: #2563eb;
+  --color-brand-100: #e8efff;
+  --color-brand-700: #1d4ed8;
+  /* The cyan from the LevelShift logo, and a lighter tint that reads on dark blue. */
+  --color-brand-cyan: #009ada;
+  --color-brand-cyan-light: #5cc8f0;
+  /* Deep navy surfaces for the sign-in page. */
+  --color-ink-950: #060b18;
+  --color-ink-900: #0a1326;
+  --color-ink-800: #101c34;
+  --color-ink-700: #1b2a48;
+  --color-ink-600: #2a3b5e;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Soft drifting lights behind the presenter. */
+.stage-blob {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0.16;
+  filter: blur(60px);
+  animation: stage-drift 18s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes stage-drift {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(40px, -30px) scale(1.2);
+  }
+}
+
+/* Rotating blue and red light around the sign-in card. Put .spin-ring on an element with
+   overflow hidden and rounded corners; the card sits inside it with a little padding. */
+.spin-ring {
+  position: relative;
+  overflow: hidden;
+}
+.spin-ring::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  aspect-ratio: 1;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    #009ada 50deg,
+    #5cc8f0 80deg,
+    transparent 130deg,
+    transparent 180deg,
+    #ef4444 230deg,
+    #fb7185 260deg,
+    transparent 310deg
+  );
+  animation: spin-ring 6s linear infinite;
+}
+.spin-ring > * {
+  position: relative;
+}
+/* A blurred copy behind the card, so the light also glows outward. */
+.spin-ring-halo {
+  filter: blur(22px);
+  opacity: 0.45;
+}
+
+@keyframes spin-ring {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Sign-in portrait: slow breathing, a gentle head tilt and a blink every few seconds. */
+.portrait-breathe {
+  animation: portrait-breathe 4.5s ease-in-out infinite;
+}
+.portrait-head {
+  transform-box: view-box;
+  transform-origin: 200px 300px;
+  animation: portrait-tilt 7s ease-in-out infinite;
+}
+.portrait-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: portrait-blink 5s infinite;
+}
+
+@keyframes portrait-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+@keyframes portrait-tilt {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+@keyframes portrait-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-blob,
+  .spin-ring::before,
+  .portrait-breathe,
+  .portrait-head,
+  .portrait-blink {
+    animation: none;
+  }
+}
+
+/* Dashboards print cleanly, which is how "save as PDF" works. */
+@media print {
+  body {
+    background: #fff;
+  }
+  @page {
+    margin: 14mm;
+  }
+}

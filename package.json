@@ -1,0 +1,33 @@
+{
+  "name": "induction-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-Powered Interactive Employee Induction Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @induction/shared && concurrently -n shared,api,web -c gray,green,cyan \"npm run dev -w @induction/shared\" \"npm run dev -w @induction/api\" \"npm run dev -w @induction/web\"",
+    "build": "npm run build -w @induction/shared && npm run build -w @induction/api && npm run build -w @induction/web",
+    "typecheck": "npm run build -w @induction/shared && npm run typecheck -w @induction/api && npm run typecheck -w @induction/web",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,tsx,json,css}\" --ignore-path .gitignore",
+    "test": "npm run test --workspaces --if-present",
+    "db:generate": "npm run db:generate -w @induction/api",
+    "db:migrate": "npm run db:migrate -w @induction/api",
+    "db:seed": "npm run build -w @induction/shared && npm run db:seed -w @induction/api",
+    "db:reset": "npm run db:reset -w @induction/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.20.0"
+  }
+}

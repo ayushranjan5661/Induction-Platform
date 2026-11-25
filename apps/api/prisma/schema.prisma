@@ -1,0 +1,417 @@
+// Data model for the induction platform (docs/SPEC.md section 9).
+// pgvector is a Phase 2 concern and is intentionally not enabled here.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  LEARNER
+  ADMIN
+  HR_ADMIN
+  LEGAL_REVIEWER
+}
+
+enum StepType {
+  VIDEO
+  QUESTION
+  TRANSITION
+  ACKNOWLEDGMENT
+}
+
+enum ContentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum MediaKind {
+  AVATAR_VIDEO
+  BACKGROUND
+  MUSIC
+  SFX
+  LOTTIE
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+// Avatar expression. Keep in sync with packages/shared/src/index.ts.
+enum Emotion {
+  NEUTRAL
+  FRIENDLY
+  CHEERFUL
+  EXCITED
+  PROUD
+  HOPEFUL
+  EMPATHETIC
+  SERIOUS
+  ENCOURAGING
+}
+
+enum Gesture {
+  NONE
+  WAVE
+  NOD
+  THUMBS_UP
+  APPLAUD
+  OPEN_ARMS
+  POINT_LEFT
+  POINT_RIGHT
+  SHOW_FRONT
+  COUNT_ONE
+  COUNT_TWO
+  COUNT_THREE
+  THINK
+  HAND_ON_HEART
+  CAUTION
+}
+
+model BusinessUnit {
+  id          String @id @default(cuid())
+  // Module 6 steps use topic "bu-<slug>" so a learner's own unit can play first.
+  slug        String @unique
+  name        String @unique
+  description String
+  order       Int    @unique
+  users       User[]
+}
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  // Company employee id, entered by HR when inviting a candidate.
+  employeeId     String?       @unique
+  // scrypt hash; null means the account can only sign in by invite link.
+  passwordHash   String?
+  // True while the account still has the system-set default password.
+  mustChangePassword Boolean   @default(false)
+  // Staff only: the default password, AES-GCM encrypted, so admins can see it until the
+  // user sets their own. Cleared on password change. Candidates never have one.
+  defaultPasswordEnc String?
+  // SHA-256 of the current invite-link token.
+  inviteTokenHash String?      @unique
+  inviteExpiresAt DateTime?
+  firstName      String
+  lastName       String
+  department     String
+  location       String
+  businessUnitId String?
+  businessUnit   BusinessUnit? @relation(fields: [businessUnitId], references: [id])
+  role           Role          @default(LEARNER)
+  joiningDate    DateTime      @db.Date
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+
+  enrollment      Enrollment?
+  moduleProgress  ModuleProgress[]
+  userQuestions   UserQuestion[]
+  attempts        Attempt[]
+  acknowledgments Acknowledgment[]
+  feedback        Feedback[]
+  reviews         ContentReview[]
+  auditLogs       AuditLog[]
+  aiDraft         AiDraft?
+
+  @@index([role])
+  @@index([businessUnitId])
+}
+
+model Avatar {
+  id               String  @id @default(cuid())
+  name             String  @unique
+  // Presenter role shown on screen, e.g. "Culture Guide".
+  title            String
+  // How the built-in avatar is drawn (AvatarAppearance in packages/shared).
+  appearance       Json    @default("{}")
+  // Browser text-to-speech profile: "female" | "male", BCP-47 language,
+  // and base pitch/rate (1 = the voice's normal).
+  voiceGender      String  @default("female")
+  voiceLang        String  @default("en-IN")
+  voicePitch       Float   @default(1)
+  voiceRate        Float   @default(1)
+  themeColor       String
+  personalityNotes String
+  // Expression defaults: used when a script segment does not set its own.
+  defaultEmotion   Emotion @default(FRIENDLY)
+  // Motion played on entry and when handing over to the next presenter.
+  entryGesture     Gesture @default(WAVE)
+  exitGesture      Gesture @default(OPEN_ARMS)
+  // 0.5 (calm) to 1.5 (lively): scales idle motion and speaking rate.
+  energy           Float   @default(1)
+
+  modules     Module[]
+  steps       Step[]
+  praiseClips AvatarPraiseClip[]
+}
+
+model AvatarPraiseClip {
+  id           String      @id @default(cuid())
+  avatarId     String
+  avatar       Avatar      @relation(fields: [avatarId], references: [id], onDelete: Cascade)
+  text         String
+  emotion      Emotion     @default(EXCITED)
+  gesture      Gesture     @default(THUMBS_UP)
+  mediaAssetId String?
+  mediaAsset   MediaAsset? @relation("PraiseClipMedia", fields: [mediaAssetId], references: [id])
+
+  @@index([avatarId])
+}
+
+model Module {
+  id                     String        @id @default(cuid())
+  order                  Int           @unique
+  slug                   String        @unique
+  title                  String
+  description            String        @default("")
+  avatarId               String
+  avatar                 Avatar        @relation(fields: [avatarId], references: [id])
+  requiresAcknowledgment Boolean       @default(false)
+  status                 ContentStatus @default(DRAFT)
+  version                Int           @default(1)
+
+  steps           Step[]
+  questions       Question[]
+  moduleProgress  ModuleProgress[]
+  acknowledgments Acknowledgment[]
+}
+
+model Step {
+  id       String   @id @default(cuid())
+  moduleId String
+  module   Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  order    Int
+  type     StepType
+  title    String   @default("")
+  // Topic within the module; also the acknowledgment topic for ACKNOWLEDGMENT steps.
+  topic    String   @default("")
+  // Presenter override. Null means the module's avatar speaks (lets the two
+  // founders share Module 2).
+  avatarId String?
+  avatar   Avatar?  @relation(fields: [avatarId], references: [id])
+  // Plain narration (captions, hashing). Derived from `segments`.
+  script   String   @default("")
+  // ScriptSegment[]: [{ text, emotion, gesture }] - validated with Zod.
+  segments Json     @default("[]")
+  // Dominant mood of the step: tints the stage and sets the idle animation.
+  emotion  Emotion  @default(NEUTRAL)
+  // ACKNOWLEDGMENT steps: the policy text the learner must confirm.
+  ackText  String?
+
+  questionPoolTopic String?
+  mediaAssetId      String?
+  mediaAsset        MediaAsset? @relation("StepMedia", fields: [mediaAssetId], references: [id])
+  backgroundAssetId String?
+  backgroundAsset   MediaAsset? @relation("StepBackground", fields: [backgroundAssetId], references: [id])
+  musicAssetId      String?
+  musicAsset        MediaAsset? @relation("StepMusic", fields: [musicAssetId], references: [id])
+
+  userQuestions UserQuestion[]
+
+  @@unique([moduleId, order])
+}
+
+model Question {
+  id          String        @id @default(cuid())
+  moduleId    String
+  module      Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  topic       String
+  text        String
+  hint        String
+  explanation String
+  askClipId    String?
+  askClip      MediaAsset?   @relation("QuestionAsk", fields: [askClipId], references: [id])
+  hintClipId   String?
+  hintClip     MediaAsset?   @relation("QuestionHint", fields: [hintClipId], references: [id])
+  revealClipId String?
+  revealClip   MediaAsset?   @relation("QuestionReveal", fields: [revealClipId], references: [id])
+  status      ContentStatus @default(DRAFT)
+  version     Int           @default(1)
+
+  options       QuestionOption[]
+  userQuestions UserQuestion[]
+  attempts      Attempt[]
+
+  @@index([moduleId, topic, status])
+}
+
+model QuestionOption {
+  id         String    @id @default(cuid())
+  questionId String
+  question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean   @default(false)
+  order      Int
+  attempts   Attempt[]
+
+  @@unique([questionId, order])
+}
+
+// The question the server picked for this user at this step (stable on resume).
+model UserQuestion {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stepId     String
+  step       Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([userId, stepId])
+}
+
+model Attempt {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionId   String
+  option     QuestionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  attemptNo  Int
+  isCorrect  Boolean
+  createdAt  DateTime       @default(now())
+
+  @@unique([userId, questionId, attemptNo])
+}
+
+model Enrollment {
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          EnrollmentStatus @default(NOT_STARTED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  currentModuleId String?
+  currentStepId   String?
+
+  @@index([status])
+}
+
+model ModuleProgress {
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId    String
+  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  status      EnrollmentStatus @default(NOT_STARTED)
+  completedAt DateTime?
+
+  @@id([userId, moduleId])
+}
+
+model Acknowledgment {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId       String
+  module         Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  topic          String
+  contentVersion Int
+  acknowledgedAt DateTime @default(now())
+
+  @@unique([userId, moduleId, topic, contentVersion])
+}
+
+/// AI assistant work in progress: one saved draft per admin.
+model AiDraft {
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Plain id, not a relation: a deleted module must not delete the draft.
+  moduleId   String   @default("")
+  topic      String   @default("")
+  title      String   @default("")
+  sourceText String   @default("")
+  count      Int      @default(3)
+  // Drafted script segments, or null when no script has been drafted.
+  segments   Json?
+  updatedAt  DateTime @updatedAt
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model MediaAsset {
+  id               String    @id @default(cuid())
+  kind             MediaKind
+  storageKey       String
+  mimeType         String
+  durationSec      Float?
+  captionsKey      String?
+  sourceScriptHash String?
+  status           JobStatus @default(SUCCEEDED)
+  createdAt        DateTime  @default(now())
+
+  jobs            AvatarJob[]
+  praiseClips     AvatarPraiseClip[] @relation("PraiseClipMedia")
+  stepMedia       Step[]             @relation("StepMedia")
+  stepBackgrounds Step[]             @relation("StepBackground")
+  stepMusic       Step[]             @relation("StepMusic")
+  questionAsks    Question[]         @relation("QuestionAsk")
+  questionHints   Question[]         @relation("QuestionHint")
+  questionReveals Question[]         @relation("QuestionReveal")
+
+  @@index([sourceScriptHash])
+}
+
+model AvatarJob {
+  id           String     @id @default(cuid())
+  mediaAssetId String
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  azureJobId   String?
+  status       JobStatus  @default(QUEUED)
+  error        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model ContentReview {
+  id         String        @id @default(cuid())
+  entityType String
+  entityId   String
+  version    Int
+  status     ContentStatus
+  // Null once the reviewer's account is deleted; the review record is kept.
+  reviewerId String?
+  reviewer   User?         @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  comment    String        @default("")
+  createdAt  DateTime      @default(now())
+
+  @@index([entityType, entityId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  // Null once the actor's account is deleted; the audit entry is kept.
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  details    Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}

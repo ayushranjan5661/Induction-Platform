@@ -1,0 +1,10 @@
+-- AlterTable
+ALTER TABLE "Avatar" DROP COLUMN "azureCharacter",
+DROP COLUMN "azureStyle",
+DROP COLUMN "voiceName",
+ADD COLUMN     "appearance" JSONB NOT NULL DEFAULT '{}',
+ADD COLUMN     "voiceGender" TEXT NOT NULL DEFAULT 'female',
+ADD COLUMN     "voiceLang" TEXT NOT NULL DEFAULT 'en-IN',
+ADD COLUMN     "voicePitch" DOUBLE PRECISION NOT NULL DEFAULT 1,
+ADD COLUMN     "voiceRate" DOUBLE PRECISION NOT NULL DEFAULT 1;
+
