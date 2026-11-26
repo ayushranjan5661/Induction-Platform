@@ -140,6 +140,16 @@ export class UsersController {
       throw new ConflictException('That employee id is already in use');
   }
 
+  /** The account's current sign-in details (eye button): the default password until changed. */
+  @Get(':id/credentials')
+  async viewCredentials(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+  ): Promise<CredentialsDto> {
+    await this.editable(actor, id);
+    return this.credentials.view(actor, id, 'user.view-credentials');
+  }
+
   /** A fresh default password for any account. The old one stops working. */
   @Post(':id/reset-password')
   @HttpCode(200)

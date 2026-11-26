@@ -33,10 +33,22 @@ const NAV: Record<Exclude<Role, 'LEARNER'>, { title: string; groups: NavGroup[] 
           { to: '/admin/ai', label: 'AI assistant' },
         ],
       },
-      { heading: 'Access', items: [{ to: '/admin/users', label: 'Employee Accounts' }] },
+      {
+        heading: 'Access',
+        items: [
+          { to: '/admin/users', label: 'Employee Accounts' },
+          { to: '/admin/audit', label: 'Audit log' },
+        ],
+      },
     ],
   },
-  HR_ADMIN: { title: 'HR panel', groups: [{ heading: 'Candidates', items: reports('/hr') }] },
+  HR_ADMIN: {
+    title: 'HR panel',
+    groups: [
+      { heading: 'Candidates', items: reports('/hr') },
+      { heading: 'Access', items: [{ to: '/hr/audit', label: 'Audit log' }] },
+    ],
+  },
   LEGAL_REVIEWER: {
     title: 'Legal review',
     groups: [

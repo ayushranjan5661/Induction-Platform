@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AuditPage } from './admin/AuditPage';
 import { AdminLayout } from './admin/AdminLayout';
 import { AiPage } from './admin/AiPage';
 import { AvatarsPage } from './admin/AvatarsPage';
@@ -37,6 +38,7 @@ const reportRoutes = (
     <Route path="candidates" element={<CandidatesPage />} />
     <Route path="employees" element={<EmployeesPage />} />
     <Route path="feedback" element={<FeedbackPage />} />
+    <Route path="audit" element={<AuditPage />} />
   </>
 );
 

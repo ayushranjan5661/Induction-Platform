@@ -100,6 +100,45 @@ export function CandidatesPage(): ReactElement {
     }
   };
 
+  /** Eye button: the candidate's current sign-in details, with Reset password. */
+  const [viewing, setViewing] = useState<{ id: string; creds: CredentialsDto } | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [viewError, setViewError] = useState('');
+
+  const view = async (candidate: CandidateDto) => {
+    setError('');
+    setViewError('');
+    try {
+      const creds = await api.get<CredentialsDto>(`/hr/candidates/${candidate.id}/credentials`);
+      setViewing({ id: candidate.id, creds });
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
+  const resetFromView = async () => {
+    if (!viewing) return;
+    if (
+      !window.confirm(
+        'Issue a new default password and a new invitation link? The current password and link stop working.',
+      )
+    )
+      return;
+    setResetting(true);
+    setViewError('');
+    try {
+      await api.post<CredentialsDto>(`/hr/candidates/${viewing.id}/reset-password`);
+      // Show the new password together with the current link.
+      const creds = await api.get<CredentialsDto>(`/hr/candidates/${viewing.id}/credentials`);
+      setViewing({ id: viewing.id, creds });
+      await reload();
+    } catch (err) {
+      setViewError(errorMessage(err));
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const needle = search.trim().toLowerCase();
   const rows = (candidates.data ?? []).filter(
     (c) => !needle || `${c.name} ${c.email} ${c.employeeId ?? ''}`.toLowerCase().includes(needle),
@@ -218,23 +257,33 @@ export function CandidatesPage(): ReactElement {
                 <span className="flex flex-wrap gap-1.5">
                   <Button
                     small
+                    disabled={busy}
+                    onClick={() => void view(c)}
+                    aria-label={`Show sign-in details for ${c.name}`}
+                    title="Show sign-in details"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                      aria-hidden
+                    >
+                      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+                      <circle cx="12" cy="12" r="2.8" />
+                    </svg>
+                  </Button>
+                  <Button
+                    small
                     disabled={busy || !c.isActive}
                     onClick={() =>
                       void issue(() => api.post<CredentialsDto>(`/hr/candidates/${c.id}/invite`))
                     }
                   >
                     New link
-                  </Button>
-                  <Button
-                    small
-                    disabled={busy || !c.isActive}
-                    onClick={() =>
-                      void issue(() =>
-                        api.post<CredentialsDto>(`/hr/candidates/${c.id}/reset-password`),
-                      )
-                    }
-                  >
-                    New password
                   </Button>
                   <Button
                     small
@@ -261,6 +310,16 @@ export function CandidatesPage(): ReactElement {
       )}
 
       {issued && <CredentialsModal credentials={issued} onClose={() => setIssued(null)} />}
+      {viewing && (
+        <CredentialsModal
+          stored
+          credentials={viewing.creds}
+          onClose={() => setViewing(null)}
+          onResetPassword={() => void resetFromView()}
+          resetting={resetting}
+          error={viewError}
+        />
+      )}
       {detailId && <EmployeeDetail id={detailId} onClose={() => setDetailId(null)} />}
     </>
   );

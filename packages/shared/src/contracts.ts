@@ -462,6 +462,8 @@ export interface CsvImportResultDto {
 /** Shown once to whoever created the account or reset it. Never stored in readable form. */
 export interface CredentialsDto {
   userId: string;
+  /** For the greeting in the ready-to-send email. */
+  firstName: string;
   email: string;
   employeeId: string | null;
   /** The system-set default password, or null when only a new link was issued. */
@@ -471,6 +473,10 @@ export interface CredentialsDto {
   inviteExpiresAt: string | null;
   /** The sign-in page for this account: the candidate page or the staff page. */
   signInUrl: string;
+  /** False when the account is blocked or deactivated: nothing here can be used to sign in. */
+  isActive: boolean;
+  /** A valid link exists but was issued before links were kept, so it cannot be shown. */
+  inviteHidden: boolean;
 }
 
 /** What HR types to invite a candidate. The name is optional and can be worked out from the email. */
@@ -742,6 +748,68 @@ export interface FeedbackDto {
   average: number | null;
   distribution: { rating: number; count: number }[];
   items: { id: string; name: string; rating: number; comment: string; createdAt: string }[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Audit log                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Who sees what: the Super Admin sees every entry; an Admin sees their own and everything
+ * done by HR, Legal and candidates; HR sees their own and what candidates did.
+ */
+export const AUDIT_CATEGORIES = [
+  'SIGN_IN',
+  'ACCOUNTS',
+  'CANDIDATES',
+  'CONTENT',
+  'REVIEW',
+  'AI',
+] as const;
+export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
+
+/** Whose actions: the viewer's own, or one level of people below them. */
+export const AUDIT_ACTORS = ['ME', 'ADMIN', 'HR_ADMIN', 'LEGAL_REVIEWER', 'LEARNER'] as const;
+export type AuditActorFilter = (typeof AUDIT_ACTORS)[number];
+
+export const AuditQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  category: z.enum(AUDIT_CATEGORIES).optional(),
+  actor: z.enum(AUDIT_ACTORS).optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(1000).default(25),
+});
+export type AuditQuery = z.infer<typeof AuditQuerySchema>;
+
+export interface AuditEntryDto {
+  id: string;
+  createdAt: string;
+  action: string;
+  category: AuditCategory;
+  /** Plain-English description, e.g. "Reset the password of Jane Doe". */
+  summary: string;
+  actor: {
+    /** Null when the entry has no actor (system) or the account no longer exists. */
+    id: string | null;
+    name: string;
+    email: string | null;
+    role: Role | null;
+    isSuperAdmin: boolean;
+  };
+  target: { type: string; id: string; label: string | null };
+  /** Extra facts about the change. Never passwords, tokens or other secrets. */
+  details: Record<string, unknown>;
+}
+
+export interface AuditLogDto {
+  total: number;
+  rows: AuditEntryDto[];
+  /** Which actor filters this viewer may use. */
+  actorFilters: AuditActorFilter[];
+  /** The viewer's place in the order, for the page's explanation. */
+  scope: 'ALL' | 'ADMIN' | 'HR';
 }
 
 /* ------------------------------------------------------------------ */

@@ -131,6 +131,16 @@ export class CandidatesController {
     await deleteUser(this.prisma, actor, user, 'candidate.delete');
   }
 
+  /** The candidate's current sign-in details (eye button): default password and link while valid. */
+  @Get(':id/credentials')
+  async viewCredentials(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+  ): Promise<CredentialsDto> {
+    await this.candidate(id);
+    return this.credentials.view(actor, id, 'candidate.view-credentials');
+  }
+
   /** A fresh link. The previous link stops working. */
   @Post(':id/invite')
   @HttpCode(200)
@@ -139,18 +149,22 @@ export class CandidatesController {
     return this.credentials.issue(actor, id, { password: false, invite: true }, 'candidate.invite');
   }
 
-  /** A fresh default password. The previous password stops working. */
+  /**
+   * A fresh default password and, with it, a fresh invitation link: the two always change
+   * together, so the old password and the old link both stop working. A blocked candidate
+   * gets no link (it could not be used until they are unblocked and sent a new one).
+   */
   @Post(':id/reset-password')
   @HttpCode(200)
   async resetPassword(
     @CurrentUser() actor: AuthUser,
     @Param('id') id: string,
   ): Promise<CredentialsDto> {
-    await this.candidate(id);
+    const user = await this.candidate(id);
     return this.credentials.issue(
       actor,
       id,
-      { password: true, invite: false },
+      { password: true, invite: user.isActive },
       'candidate.reset-password',
     );
   }
@@ -169,7 +183,7 @@ export class CandidatesController {
         // Blocking also voids the current link, so re-activating needs a fresh invite.
         data: body.isActive
           ? { isActive: true }
-          : { isActive: false, inviteTokenHash: null, inviteExpiresAt: null },
+          : { isActive: false, inviteTokenHash: null, inviteTokenEnc: null, inviteExpiresAt: null },
       }),
       this.prisma.auditLog.create({
         data: {

@@ -1,6 +1,6 @@
 /** Small fetch wrapper for the API. The session lives in an httpOnly cookie. */
 import { PORTAL } from './portal';
-import { tabReady, tabSessionId } from './tabSession';
+import { retiringTabSessionId, tabReady, tabSessionId } from './tabSession';
 
 export class ApiError extends Error {
   constructor(
@@ -26,6 +26,8 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
         'x-portal': PORTAL,
         // ...and which tab, so each tab can be signed in as a different person.
         'x-session': tabSessionId(),
+        // While signing in: the tab's old id, whose cookie the server clears.
+        ...(retiringTabSessionId() ? { 'x-prev-session': retiringTabSessionId() as string } : {}),
         ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,

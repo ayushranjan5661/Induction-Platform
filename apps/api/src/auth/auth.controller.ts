@@ -44,6 +44,9 @@ import {
 } from './auth.types';
 import { hashPassword, verifyPassword } from './password';
 
+/** Most per-tab session cookies a browser keeps (both apps together); the oldest go first. */
+const MAX_TAB_SESSIONS = 12;
+
 const DEV_NOTES: Record<Role, string> = {
   ADMIN: 'Presenters, content, HR accounts, dashboard',
   HR_ADMIN: 'Invites candidates and tracks their progress',
@@ -73,7 +76,49 @@ export class AuthController {
       maxAge: SESSION_HOURS * 60 * 60 * 1000,
       path: '/',
     });
+    // Signing in on a tab replaces its old session: clear the cookie of the id it had before.
+    const prev = req.headers['x-prev-session'];
+    if (typeof prev === 'string' && isTabId(prev)) {
+      for (const base of [SESSION_COOKIE, CANDIDATE_SESSION_COOKIE]) {
+        if (`${base}_${prev}` !== name) res.clearCookie(`${base}_${prev}`, { path: '/' });
+      }
+    }
+    this.tidySessions(req, res, name);
     return { ok: true, mustChangePassword };
+  }
+
+  /** Sign-in and sign-out events for the audit log. Never the password or the token. */
+  private async audit(
+    userId: string,
+    action: 'auth.sign-in' | 'auth.sign-in-failed' | 'auth.sign-out',
+    details: Record<string, string> = {},
+  ): Promise<void> {
+    await this.prisma.auditLog.create({
+      data: { actorId: userId, action, entityType: 'user', entityId: userId, details },
+    });
+  }
+
+  /**
+   * Per-tab cookies outlive closed tabs. Clear expired ones and keep only the newest few, so the
+   * Cookie header never grows too large (Node rejects headers over 16 KB with 431).
+   */
+  private tidySessions(req: Request, res: Response, keep: string): void {
+    const cookies = (req.cookies ?? {}) as Record<string, unknown>;
+    const live: { name: string; iat: number }[] = [];
+    for (const [name, value] of Object.entries(cookies)) {
+      if (name === keep) continue;
+      if (
+        !name.startsWith(`${SESSION_COOKIE}_`) &&
+        !name.startsWith(`${CANDIDATE_SESSION_COOKIE}_`)
+      )
+        continue;
+      const iat = typeof value === 'string' ? this.auth.sessionIssuedAt(value) : null;
+      if (iat === null) res.clearCookie(name, { path: '/' });
+      else live.push({ name, iat });
+    }
+    live.sort((a, b) => b.iat - a.iat);
+    for (const stale of live.slice(MAX_TAB_SESSIONS - 1))
+      res.clearCookie(stale.name, { path: '/' });
   }
 
   @Public()
@@ -85,7 +130,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<LoginResultDto> {
     const user = await this.auth.authenticate(body.email, body.password);
-    if (!user) throw new UnauthorizedException('The email or password is not right');
+    if (!user) {
+      // Failed attempts on a real, active account are recorded against that account.
+      const target = await this.prisma.user.findUnique({ where: { email: body.email } });
+      if (target?.isActive) await this.audit(target.id, 'auth.sign-in-failed');
+      throw new UnauthorizedException('The email or password is not right');
+    }
     // Each page signs in only its own people (checked after the password, so it reveals nothing).
     if (body.portal === 'candidate' && user.role !== 'LEARNER') {
       throw new UnauthorizedException(
@@ -97,6 +147,7 @@ export class AuthController {
         'This page is for staff. Candidates sign in on the candidate page.',
       );
     }
+    await this.audit(user.id, 'auth.sign-in', { method: 'password' });
     return this.startSession(req, res, user, user.mustChangePassword);
   }
 
@@ -129,6 +180,15 @@ export class AuthController {
     const user = await this.auth.authenticateDev(body.email);
     if (!user)
       throw new UnauthorizedException('We could not find an active account for that email');
+    // Same rule as the password sign-in: each app signs in only its own people.
+    if ((portalOf(req) === 'candidate') !== (user.role === 'LEARNER')) {
+      throw new UnauthorizedException(
+        user.role === 'LEARNER'
+          ? 'This page is for staff. Candidates sign in on the candidate page.'
+          : 'This page is for candidates. Admin, HR and Legal staff sign in on the staff page.',
+      );
+    }
+    await this.audit(user.id, 'auth.sign-in', { method: 'demo' });
     return this.startSession(req, res, user, false);
   }
 
@@ -147,6 +207,7 @@ export class AuthController {
         'This invitation link is not valid any more. Please ask HR for a new one.',
       );
     }
+    await this.audit(user.id, 'auth.sign-in', { method: 'invite' });
     return this.startSession(req, res, user, false);
   }
 
@@ -193,7 +254,12 @@ export class AuthController {
   @AllowDefaultPassword()
   @Post('logout')
   @HttpCode(200)
-  logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): { ok: true } {
+  async logout(
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ ok: true }> {
+    await this.audit(user.id, 'auth.sign-out');
     // Only this tab in this app signs out; other tabs and the other app keep their sessions.
     const base = portalOf(req) === 'candidate' ? CANDIDATE_SESSION_COOKIE : SESSION_COOKIE;
     res.clearCookie(sessionCookieName(base, req), { path: '/' });
@@ -229,6 +295,7 @@ export class AuthController {
       maxAge: SESSION_HOURS * 60 * 60 * 1000,
       path: '/',
     });
+    this.tidySessions(req, res, target);
     return { ok: true };
   }
 

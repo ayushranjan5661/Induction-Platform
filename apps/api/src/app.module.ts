@@ -6,6 +6,7 @@ import { ContentController } from './admin/content.controller';
 import { ContentService } from './admin/content.service';
 import { CredentialsService } from './admin/credentials.service';
 import { UsersController } from './admin/users.controller';
+import { AuditController } from './audit/audit.controller';
 import { AuthController } from './auth/auth.controller';
 import { RolesGuard, SessionGuard } from './auth/auth.guards';
 import { AuthService } from './auth/auth.service';
@@ -38,6 +39,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AiController,
     DashboardController,
     CandidatesController,
+    AuditController,
   ],
   providers: [
     AuthService,

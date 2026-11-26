@@ -226,19 +226,44 @@ export function UsersPage(): ReactElement {
   const [issued, setIssued] = useState<CredentialsDto | null>(null);
   const [error, setError] = useState('');
 
-  const resetPassword = async (user: AdminUserDto) => {
+  /** Eye button: the account's current sign-in details, with Reset password. */
+  const [viewing, setViewing] = useState<{ user: AdminUserDto; creds: CredentialsDto } | null>(
+    null,
+  );
+  const [resetting, setResetting] = useState(false);
+  const [viewError, setViewError] = useState('');
+
+  const view = async (user: AdminUserDto) => {
+    setError('');
+    setViewError('');
+    try {
+      const creds = await api.get<CredentialsDto>(`/admin/users/${user.id}/credentials`);
+      setViewing({ user, creds });
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!viewing) return;
+    const { user } = viewing;
     if (
       !window.confirm(
         `Set a new default password for ${user.firstName} ${user.lastName}? Their current password will stop working.`,
       )
     )
       return;
-    setError('');
+    setResetting(true);
+    setViewError('');
     try {
-      setIssued(await api.post<CredentialsDto>(`/admin/users/${user.id}/reset-password`));
+      await api.post<CredentialsDto>(`/admin/users/${user.id}/reset-password`);
+      const creds = await api.get<CredentialsDto>(`/admin/users/${user.id}/credentials`);
+      setViewing({ user, creds });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     } catch (err) {
-      setError(errorMessage(err));
+      setViewError(errorMessage(err));
+    } finally {
+      setResetting(false);
     }
   };
   const [search, setSearch] = useState('');
@@ -369,7 +394,7 @@ export function UsersPage(): ReactElement {
                 ) : user.mustChangePassword ? (
                   <Pill
                     tone="amber"
-                    title="Issued before default passwords were kept. Click New password to issue one you can see here."
+                    title="Issued before default passwords were kept. Open the eye button and click Reset password to issue one you can see."
                   >
                     Default password
                   </Pill>
@@ -390,18 +415,31 @@ export function UsersPage(): ReactElement {
                 <Button
                   small
                   disabled={locked}
-                  title={lockedTitle}
-                  onClick={() => setEditing(user)}
+                  title={lockedTitle ?? 'Show sign-in details'}
+                  aria-label={`Show sign-in details for ${user.firstName} ${user.lastName}`}
+                  onClick={() => void view(user)}
                 >
-                  Edit
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                    aria-hidden
+                  >
+                    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+                    <circle cx="12" cy="12" r="2.8" />
+                  </svg>
                 </Button>{' '}
                 <Button
                   small
                   disabled={locked}
                   title={lockedTitle}
-                  onClick={() => void resetPassword(user)}
+                  onClick={() => setEditing(user)}
                 >
-                  New password
+                  Edit
                 </Button>{' '}
                 <button
                   type="button"
@@ -447,7 +485,18 @@ export function UsersPage(): ReactElement {
           }}
         />
       )}
-      {issued && <CredentialsModal credentials={issued} onClose={() => setIssued(null)} />}
+      {issued && <CredentialsModal staff credentials={issued} onClose={() => setIssued(null)} />}
+      {viewing && (
+        <CredentialsModal
+          stored
+          staff
+          credentials={viewing.creds}
+          onClose={() => setViewing(null)}
+          onResetPassword={() => void resetPassword()}
+          resetting={resetting}
+          error={viewError}
+        />
+      )}
       {importing && <ImportForm onClose={() => setImporting(false)} onImported={reload} />}
     </>
   );

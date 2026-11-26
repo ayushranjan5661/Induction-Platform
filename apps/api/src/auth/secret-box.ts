@@ -4,8 +4,9 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:cr
 import type { Env } from '../config/env';
 
 /**
- * AES-256-GCM encryption for the one readable secret the database keeps: a staff
- * account's system-set default password, shown to admins until the user replaces it.
+ * AES-256-GCM encryption for the readable secrets the database keeps: a system-set
+ * default password (shown until the user replaces it) and a candidate's invite token
+ * (shown while the link is valid).
  * The key comes from CREDENTIALS_KEY, or is derived from JWT_SECRET when that is unset.
  * Stored format: base64(iv | tag | ciphertext).
  */

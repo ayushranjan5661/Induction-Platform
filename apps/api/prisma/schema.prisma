@@ -103,11 +103,14 @@ model User {
   passwordHash   String?
   // True while the account still has the system-set default password.
   mustChangePassword Boolean   @default(false)
-  // Staff only: the default password, AES-GCM encrypted, so admins can see it until the
-  // user sets their own. Cleared on password change. Candidates never have one.
+  // The default password, AES-GCM encrypted, so admins (staff) and HR (candidates) can see it
+  // until the user sets their own. Cleared on password change.
   defaultPasswordEnc String?
   // SHA-256 of the current invite-link token.
   inviteTokenHash String?      @unique
+  // The same invite token, AES-GCM encrypted, so HR can show the link again while it is valid.
+  // Cleared when the candidate is blocked; replaced with each new link.
+  inviteTokenEnc  String?
   inviteExpiresAt DateTime?
   firstName      String
   lastName       String
@@ -407,6 +410,12 @@ model AuditLog {
   // Null once the actor's account is deleted; the audit entry is kept.
   actorId    String?
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  // Who acted, as they were at the time. Filled by a database trigger from the actor's account
+  // on insert (see migration 20261126150000_audit_actor_snapshot), so entries keep their place in
+  // the Super Admin > Admin > HR visibility order after the account is changed or deleted.
+  actorRole  Role?
+  actorName  String?
+  actorEmail String?
   action     String
   entityType String
   entityId   String
@@ -414,4 +423,5 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
+  @@index([createdAt])
 }

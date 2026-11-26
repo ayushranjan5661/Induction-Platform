@@ -98,6 +98,16 @@ export class AuthService {
   }
 
   /** Returns the session, or null when the token is missing, forged or expired. */
+  /** When a still-valid session token was issued (seconds), or null when expired or forged. */
+  sessionIssuedAt(token: string): number | null {
+    try {
+      const payload = jwt.verify(token, this.secret, { algorithms: ['HS256'] });
+      return typeof payload === 'object' && typeof payload.iat === 'number' ? payload.iat : null;
+    } catch {
+      return null;
+    }
+  }
+
   verifySession(token: string): Session | null {
     try {
       const payload = jwt.verify(token, this.secret, { algorithms: ['HS256'] });
