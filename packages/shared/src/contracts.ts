@@ -47,7 +47,48 @@ export const BOTTOMS = ['trousers', 'shorts', 'skirt'] as const;
 export const BUILDS = ['slim', 'regular', 'broad'] as const;
 export const FIGURES = ['masculine', 'feminine'] as const;
 
+/**
+ * The 20 ready-drawn 2D characters (artwork in apps/web/src/character/sprites/svg). A presenter
+ * with `appearance.character` set is drawn as that character and animated by the same engine;
+ * without it, the presenter is built from the appearance fields below.
+ */
+export const CHARACTERS = [
+  { id: '01-maya', name: 'Maya', figure: 'feminine', look: 'bob · bomber jacket · pleated skirt' },
+  { id: '02-arjun', name: 'Arjun', figure: 'masculine', look: 'side part · denim jacket · chinos' },
+  { id: '03-zoe', name: 'Zoe', figure: 'feminine', look: 'ponytail · sweater · jeans' },
+  { id: '04-kofi', name: 'Kofi', figure: 'masculine', look: 'afro · varsity jacket · joggers' },
+  { id: '05-hana', name: 'Hana', figure: 'feminine', look: 'space buns · hoodie · shorts' },
+  {
+    id: '06-mateo',
+    name: 'Mateo',
+    figure: 'masculine',
+    look: 'swept spikes · zip hoodie · cargos',
+  },
+  { id: '07-amara', name: 'Amara', figure: 'feminine', look: 'braids · sweater · chinos' },
+  { id: '08-liam', name: 'Liam', figure: 'masculine', look: 'curly top · flannel shirt · jeans' },
+  { id: '09-sofia', name: 'Sofia', figure: 'feminine', look: 'long hair · bomber jacket · jeans' },
+  { id: '10-ethan', name: 'Ethan', figure: 'masculine', look: 'backwards cap · sweater · joggers' },
+  { id: '11-priya', name: 'Priya', figure: 'feminine', look: 'wavy bob · zip hoodie · skirt' },
+  { id: '12-noah', name: 'Noah', figure: 'masculine', look: 'buzz cut · hoodie · jeans' },
+  { id: '13-yuki', name: 'Yuki', figure: 'feminine', look: 'bob · varsity jacket · skirt' },
+  { id: '14-omar', name: 'Omar', figure: 'masculine', look: 'side part · bomber jacket · chinos' },
+  { id: '15-aisha', name: 'Aisha', figure: 'feminine', look: 'hijab · sweater · chinos' },
+  { id: '16-lucas', name: 'Lucas', figure: 'masculine', look: 'beanie · flannel shirt · jeans' },
+  { id: '17-mia', name: 'Mia', figure: 'feminine', look: 'ponytail · zip hoodie · joggers' },
+  { id: '18-diego', name: 'Diego', figure: 'masculine', look: 'mohawk · hoodie · cargo pants' },
+  { id: '19-chloe', name: 'Chloe', figure: 'feminine', look: 'wavy bob · sweater · jeans' },
+  { id: '20-kai', name: 'Kai', figure: 'masculine', look: 'curly top · zip hoodie · shorts' },
+] as const;
+export const CHARACTER_IDS = CHARACTERS.map((c) => c.id) as [
+  (typeof CHARACTERS)[number]['id'],
+  ...(typeof CHARACTERS)[number]['id'][],
+];
+export const CharacterIdSchema = z.enum(CHARACTER_IDS);
+export type CharacterId = z.infer<typeof CharacterIdSchema>;
+
 export const AvatarAppearanceSchema = z.object({
+  /** One of the ready-drawn characters; when set it replaces the built look below. */
+  character: CharacterIdSchema.optional(),
   /** Body shape. When missing it follows the voice (set by the API). */
   figure: z.enum(FIGURES).optional(),
   build: z.enum(BUILDS).default('regular'),

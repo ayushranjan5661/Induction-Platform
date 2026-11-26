@@ -1,6 +1,8 @@
 /**
- * The built-in presenter: an original 2D cartoon character drawn in SVG and
- * animated in the browser (see `src/character`). No video, no external service.
+ * The built-in presenter: a 2D cartoon character in SVG, animated in the browser
+ * (see `src/character`). No video, no external service. It is either one of the
+ * ready-drawn characters (`appearance.character`, see `character/sprites`) or one
+ * built from the appearance fields; both are driven by the same controller.
  *
  * This component adapts the app's presenter props (emotion, gesture cue,
  * speaking, current word, optional action cue) to the character controller,
@@ -12,6 +14,7 @@ import { EMOTION_TO_EXPRESSION } from '../character/anim/clips/expressions';
 import { GESTURE_TO_CLIP } from '../character/anim/clips/gestures';
 import { CharacterController, type ClipName } from '../character/controller';
 import { Character } from '../character/render/Character';
+import { SpriteCharacter } from '../character/sprites/SpriteCharacter';
 import { useCharacter } from '../character/useCharacter';
 
 export interface GestureCue {
@@ -111,6 +114,19 @@ export function Avatar({
   useEffect(() => {
     if (word && speaking) controller.speakWord(word.text, word.ms);
   }, [controller, word, speaking]);
+
+  // A ready-drawn character, driven by the same controller and poses.
+  if (avatar.appearance.character) {
+    return (
+      <SpriteCharacter
+        character={avatar.appearance.character}
+        pose={frozen ?? pose}
+        portrait={portrait}
+        className={className}
+        label={`${avatar.name}, presenter`}
+      />
+    );
+  }
 
   return (
     <Character

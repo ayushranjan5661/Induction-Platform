@@ -1,5 +1,6 @@
 /** Presenters: look, voice, personality, and a live preview of every emotion and gesture. */
 import {
+  CHARACTERS,
   EMOTIONS,
   GESTURES,
   BOTTOMS,
@@ -8,6 +9,7 @@ import {
   TOPS,
   type AvatarDto,
   type AvatarUpsertInput,
+  type CharacterId,
   type Emotion,
   type Gesture,
 } from '@induction/shared';
@@ -256,113 +258,141 @@ function AvatarForm({
           </Field>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-slate-700">Look</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Colour
-                label="Skin"
-                value={form.appearance.skin}
-                onChange={(skin) => look({ skin })}
-              />
-              <Colour
-                label="Hair"
-                value={form.appearance.hair}
-                onChange={(hair) => look({ hair })}
-              />
-              <Colour
-                label="Top"
-                value={form.appearance.outfit}
-                onChange={(outfit) => look({ outfit })}
-              />
-              <Colour
-                label="Collar / inner shirt"
-                value={form.appearance.shirt}
-                onChange={(shirt) => look({ shirt })}
-              />
-              <Colour
-                label="Bottoms"
-                value={form.appearance.pants}
-                onChange={(pants) => look({ pants })}
-              />
-              <Colour
-                label="Shoes"
-                value={form.appearance.shoes}
-                onChange={(shoes) => look({ shoes })}
-              />
-              <Colour
-                label="Stage colour"
-                value={form.themeColor}
-                onChange={(themeColor) => setForm({ ...form, themeColor })}
-              />
-              <Select
-                value={
-                  form.appearance.figure ?? (form.voiceGender === 'male' ? 'masculine' : 'feminine')
-                }
-                onChange={(e) => look({ figure: e.target.value as 'masculine' | 'feminine' })}
-                aria-label="Figure"
-              >
-                <option value="masculine">Masculine figure</option>
-                <option value="feminine">Feminine figure</option>
-              </Select>
-              <Select
-                value={form.appearance.build}
-                onChange={(e) => look({ build: e.target.value as (typeof BUILDS)[number] })}
-                aria-label="Build"
-              >
-                {BUILDS.map((b) => (
-                  <option key={b} value={b}>
-                    {pretty(b.toUpperCase())} build
-                  </option>
-                ))}
-              </Select>
-              <Select
-                value={form.appearance.top}
-                onChange={(e) => look({ top: e.target.value as (typeof TOPS)[number] })}
-                aria-label="Top"
-              >
-                {TOPS.map((t) => (
-                  <option key={t} value={t}>
-                    {pretty(t.toUpperCase())}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                value={form.appearance.bottom}
-                onChange={(e) => look({ bottom: e.target.value as (typeof BOTTOMS)[number] })}
-                aria-label="Bottoms"
-              >
-                {BOTTOMS.map((b) => (
-                  <option key={b} value={b}>
-                    {pretty(b.toUpperCase())}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                value={form.appearance.hairStyle}
-                onChange={(e) =>
-                  look({ hairStyle: e.target.value as (typeof HAIR_STYLES)[number] })
-                }
-                aria-label="Hair style"
-              >
-                {HAIR_STYLES.map((style) => (
-                  <option key={style} value={style}>
-                    {style === 'sidePart' ? 'Side part' : pretty(style.toUpperCase())}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-700">
-              {(['glasses', 'beard', 'earrings'] as const).map((key) => (
-                <label key={key} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.appearance[key]}
-                    onChange={(e) => look({ [key]: e.target.checked })}
-                  />
-                  {pretty(key.toUpperCase())}
-                </label>
-              ))}
-            </div>
+            <p className="mb-2 text-sm font-medium text-slate-700">Character</p>
+            <CharacterPicker
+              value={form.appearance.character}
+              form={form}
+              onChange={(character) => {
+                const picked = CHARACTERS.find((c) => c.id === character);
+                setForm({
+                  ...form,
+                  appearance: { ...form.appearance, character },
+                  // A new presenter takes the character's voice by default.
+                  ...(!avatar && picked
+                    ? { voiceGender: picked.figure === 'masculine' ? 'male' : 'female' }
+                    : {}),
+                });
+              }}
+            />
           </div>
+
+          {form.appearance.character ? (
+            <Colour
+              label="Stage colour"
+              value={form.themeColor}
+              onChange={(themeColor) => setForm({ ...form, themeColor })}
+            />
+          ) : (
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-700">Look</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Colour
+                  label="Skin"
+                  value={form.appearance.skin}
+                  onChange={(skin) => look({ skin })}
+                />
+                <Colour
+                  label="Hair"
+                  value={form.appearance.hair}
+                  onChange={(hair) => look({ hair })}
+                />
+                <Colour
+                  label="Top"
+                  value={form.appearance.outfit}
+                  onChange={(outfit) => look({ outfit })}
+                />
+                <Colour
+                  label="Collar / inner shirt"
+                  value={form.appearance.shirt}
+                  onChange={(shirt) => look({ shirt })}
+                />
+                <Colour
+                  label="Bottoms"
+                  value={form.appearance.pants}
+                  onChange={(pants) => look({ pants })}
+                />
+                <Colour
+                  label="Shoes"
+                  value={form.appearance.shoes}
+                  onChange={(shoes) => look({ shoes })}
+                />
+                <Colour
+                  label="Stage colour"
+                  value={form.themeColor}
+                  onChange={(themeColor) => setForm({ ...form, themeColor })}
+                />
+                <Select
+                  value={
+                    form.appearance.figure ??
+                    (form.voiceGender === 'male' ? 'masculine' : 'feminine')
+                  }
+                  onChange={(e) => look({ figure: e.target.value as 'masculine' | 'feminine' })}
+                  aria-label="Figure"
+                >
+                  <option value="masculine">Masculine figure</option>
+                  <option value="feminine">Feminine figure</option>
+                </Select>
+                <Select
+                  value={form.appearance.build}
+                  onChange={(e) => look({ build: e.target.value as (typeof BUILDS)[number] })}
+                  aria-label="Build"
+                >
+                  {BUILDS.map((b) => (
+                    <option key={b} value={b}>
+                      {pretty(b.toUpperCase())} build
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  value={form.appearance.top}
+                  onChange={(e) => look({ top: e.target.value as (typeof TOPS)[number] })}
+                  aria-label="Top"
+                >
+                  {TOPS.map((t) => (
+                    <option key={t} value={t}>
+                      {pretty(t.toUpperCase())}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  value={form.appearance.bottom}
+                  onChange={(e) => look({ bottom: e.target.value as (typeof BOTTOMS)[number] })}
+                  aria-label="Bottoms"
+                >
+                  {BOTTOMS.map((b) => (
+                    <option key={b} value={b}>
+                      {pretty(b.toUpperCase())}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  value={form.appearance.hairStyle}
+                  onChange={(e) =>
+                    look({ hairStyle: e.target.value as (typeof HAIR_STYLES)[number] })
+                  }
+                  aria-label="Hair style"
+                >
+                  {HAIR_STYLES.map((style) => (
+                    <option key={style} value={style}>
+                      {style === 'sidePart' ? 'Side part' : pretty(style.toUpperCase())}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-700">
+                {(['glasses', 'beard', 'earrings'] as const).map((key) => (
+                  <label key={key} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.appearance[key]}
+                      onChange={(e) => look({ [key]: e.target.checked })}
+                    />
+                    {pretty(key.toUpperCase())}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Default emotion">
@@ -516,5 +546,74 @@ function AvatarForm({
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** The 20 ready-drawn characters, plus "build your own" from the look settings. */
+function CharacterPicker({
+  value,
+  form,
+  onChange,
+}: {
+  value: CharacterId | undefined;
+  form: AvatarUpsertInput;
+  onChange: (character: CharacterId | undefined) => void;
+}): ReactElement {
+  const tile = (selected: boolean) =>
+    `flex flex-col items-center rounded-xl border p-1 text-xs transition-colors ${
+      selected
+        ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-200'
+        : 'border-slate-200 hover:border-slate-400'
+    }`;
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Character"
+      className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto pr-1 sm:grid-cols-6"
+    >
+      {CHARACTERS.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          role="radio"
+          aria-checked={value === c.id}
+          title={c.look}
+          className={tile(value === c.id)}
+          onClick={() => onChange(c.id)}
+        >
+          <span
+            className="block h-16 w-full overflow-hidden rounded-lg"
+            style={{
+              background: `radial-gradient(circle at 50% 80%, ${form.themeColor}, #131c3d)`,
+            }}
+          >
+            <Avatar
+              avatar={{
+                name: c.name,
+                energy: 1,
+                themeColor: form.themeColor,
+                appearance: { ...form.appearance, character: c.id },
+              }}
+              still
+              portrait
+              className="h-full w-full"
+            />
+          </span>
+          <span className="mt-1 truncate font-medium text-slate-700">{c.name}</span>
+        </button>
+      ))}
+      <button
+        type="button"
+        role="radio"
+        aria-checked={!value}
+        className={tile(!value)}
+        onClick={() => onChange(undefined)}
+      >
+        <span className="flex h-16 w-full items-center justify-center rounded-lg bg-slate-100 text-2xl text-slate-500">
+          ✎
+        </span>
+        <span className="mt-1 font-medium text-slate-700">Build your own</span>
+      </button>
+    </div>
   );
 }

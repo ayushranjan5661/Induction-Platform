@@ -81,6 +81,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Maya',
     title: 'Company Guide',
     appearance: {
+      character: '01-maya',
       skin: '#C68B5E',
       hair: '#2B1B12',
       hairStyle: 'long',
@@ -110,6 +111,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Rajamannar Abboy',
     title: 'Founder and Director',
     appearance: {
+      character: '02-arjun',
       skin: '#B9794C',
       hair: '#8A8F98',
       hairStyle: 'sidePart',
@@ -137,6 +139,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Ramki Ramakrishnen',
     title: 'Founder Director',
     appearance: {
+      character: '14-omar',
       skin: '#A86B43',
       hair: '#3A3A3A',
       hairStyle: 'short',
@@ -165,6 +168,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Zara',
     title: 'Culture Guide',
     appearance: {
+      character: '07-amara',
       skin: '#E8B48C',
       hair: '#5B2C83',
       hairStyle: 'curly',
@@ -193,6 +197,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Arjun',
     title: 'Policies Guide',
     appearance: {
+      character: '12-noah',
       skin: '#8D5A3B',
       hair: '#16110D',
       hairStyle: 'short',
@@ -220,6 +225,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Priya',
     title: 'Compliance Guide',
     appearance: {
+      character: '11-priya',
       skin: '#D9A066',
       hair: '#1C1410',
       hairStyle: 'bun',
@@ -248,6 +254,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Kabir',
     title: 'Business Units Guide',
     appearance: {
+      character: '06-mateo',
       skin: '#C98B5E',
       hair: '#1A1412',
       hairStyle: 'sidePart',
@@ -277,6 +284,7 @@ export const AVATARS: AvatarDef[] = [
     name: 'Anika',
     title: 'Closing Host',
     appearance: {
+      character: '13-yuki',
       skin: '#7A4A2E',
       hair: '#0F0A07',
       hairStyle: 'bob',
