@@ -27,16 +27,41 @@ import {
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex colour like #2563EB');
 
-export const HAIR_STYLES = ['short', 'sidePart', 'bun', 'long', 'curly', 'bob', 'bald'] as const;
+export const HAIR_STYLES = [
+  'short',
+  'spiky',
+  'sidePart',
+  'bun',
+  'ponytail',
+  'long',
+  'curly',
+  'bob',
+  'bald',
+] as const;
 export const HairStyleSchema = z.enum(HAIR_STYLES);
 export type HairStyle = z.infer<typeof HairStyleSchema>;
 
+/** Presenter clothing and body. */
+export const TOPS = ['polo', 'tee', 'sweater', 'shirt', 'jacket', 'vest'] as const;
+export const BOTTOMS = ['trousers', 'shorts', 'skirt'] as const;
+export const BUILDS = ['slim', 'regular', 'broad'] as const;
+export const FIGURES = ['masculine', 'feminine'] as const;
+
 export const AvatarAppearanceSchema = z.object({
+  /** Body shape. When missing it follows the voice (set by the API). */
+  figure: z.enum(FIGURES).optional(),
+  build: z.enum(BUILDS).default('regular'),
   skin: hex.default('#C68B5E'),
   hair: hex.default('#2B1B12'),
   hairStyle: HairStyleSchema.default('short'),
+  top: z.enum(TOPS).default('polo'),
+  /** Main colour of the top. */
   outfit: hex.default('#2563EB'),
+  /** Collar, inner shirt and cuffs. */
   shirt: hex.default('#FFFFFF'),
+  bottom: z.enum(BOTTOMS).default('trousers'),
+  pants: hex.default('#2B3A67'),
+  shoes: hex.default('#3B2B25'),
   glasses: z.boolean().default(false),
   beard: z.boolean().default(false),
   earrings: z.boolean().default(false),
@@ -79,8 +104,23 @@ const newPassword = z
   .regex(/[A-Za-z]/, 'Include at least one letter')
   .regex(/[0-9]/, 'Include at least one number');
 
-export const LoginSchema = z.object({ email, password: z.string().min(1).max(128) });
+/** Which sign-in page was used: candidates and staff each have their own. */
+export const SIGN_IN_PORTALS = ['candidate', 'staff'] as const;
+export type SignInPortal = (typeof SIGN_IN_PORTALS)[number];
+
+export const LoginSchema = z.object({
+  email,
+  password: z.string().min(1).max(128),
+  /** When given, the account's role must belong to this page. */
+  portal: z.enum(SIGN_IN_PORTALS).optional(),
+});
 export type LoginInput = z.infer<typeof LoginSchema>;
+
+/** What the invitation landing page shows before the candidate starts. */
+export interface InvitePreviewDto {
+  firstName: string;
+  expiresAt: string;
+}
 
 /** Dev-only quick sign-in for the seeded demo accounts. */
 export const DevLoginSchema = z.object({ email });
@@ -382,7 +422,14 @@ export interface ReviewItemDto {
 /* Admin: users                                                        */
 /* ------------------------------------------------------------------ */
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use the date format YYYY-MM-DD');
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use the date format YYYY-MM-DD')
+  // Rejects dates that do not exist, e.g. 2024-13-01 or 2024-02-31.
+  .refine((s) => {
+    const d = new Date(`${s}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+  }, 'That date does not exist');
 
 const employeeId = z
   .string()
@@ -422,6 +469,8 @@ export interface CredentialsDto {
   /** One-click sign-in link for candidates, or null for staff accounts. */
   inviteUrl: string | null;
   inviteExpiresAt: string | null;
+  /** The sign-in page for this account: the candidate page or the staff page. */
+  signInUrl: string;
 }
 
 /** What HR types to invite a candidate. The name is optional and can be worked out from the email. */
@@ -504,13 +553,38 @@ export type AiQuestionsRequest = z.infer<typeof AiQuestionsRequestSchema>;
 /** What the model must return for a script. */
 export const AiScriptOutputSchema = z.object({ segments: ScriptSegmentsSchema });
 
+/** "Direct with AI": choose an emotion and gesture for each segment of an existing script. */
+export const AiDirectRequestSchema = z.object({
+  segments: z
+    .array(z.object({ text: z.string().trim().min(1).max(1200) }))
+    .min(1)
+    .max(40),
+  /** The presenter's personality notes, so the direction fits the character. */
+  manner: z.string().trim().max(600).optional(),
+});
+export type AiDirectRequest = z.infer<typeof AiDirectRequestSchema>;
+
+/** What the model must return for direction: one entry per segment, in order. */
+export const AiDirectOutputSchema = z.object({
+  segments: z
+    .array(z.object({ emotion: EmotionSchema, gesture: GestureSchema }))
+    .min(1)
+    .max(40),
+});
+
 /** What the model must return for questions. */
 export const AiQuestionsOutputSchema = z.object({
   questions: z
     .array(
       z.object({
         text: z.string().trim().min(5).max(400),
-        options: z.array(z.string().trim().min(1).max(200)).length(4),
+        options: z
+          .array(z.string().trim().min(1).max(200))
+          .length(4)
+          .refine(
+            (opts) => new Set(opts.map((o) => o.toLowerCase())).size === opts.length,
+            'Options must be different from each other',
+          ),
         correctIndex: z.number().int().min(0).max(3),
         hint: z.string().trim().min(3).max(400),
         explanation: z.string().trim().min(3).max(800),

@@ -1,158 +1,67 @@
 # LevelShift Culture
 
-LevelShift's culture is built around **innovation, customer success, collaboration, continuous learning, and accountability**. As an AI-first transformation company formed from the strengths of PreludeSys, DemandBlue, and DemandDynamics, LevelShift encourages employees to think beyond traditional technology delivery and focus on creating measurable business impact.
+> **Source:** levelshift.com (Careers, Company Overview, home page and leadership profiles), read on 26 November 2026. Only facts stated on the website are included here.
 
-## Culture Highlights
+## We Are "Shifters"
 
-- AI-first, future-focused mindset
-- Customer-centric decision making
-- Collaborative teamwork across functions
-- Continuous learning and skill development
-- Ownership and accountability
-- Diversity, inclusion, and mutual respect
-- Innovation through experimentation
-- Growth-oriented environment
-
-The company's repeated **Great Place to Work®** recognition reflects its focus on employee development, inclusivity, and workplace engagement.
+LevelShift calls its people **Shifters**: people who *"find opportunity where others don't."* We value people for their **talent, personality and competence, and their ability to learn and grow.** Our culture rests on one belief: **"the belief in people and performance."**
 
 ---
 
-## Our Values
+## A Great Place to Work
 
-### 1. Customer Success
+LevelShift has been **Great Place to Work® certified six years in a row (2021–2027)**.
 
-Everything begins with understanding customer challenges and delivering solutions that create measurable value.
-
-| What It Means | Expected Actions |
-|---|---|
-| Put customer needs first | Understand business requirements completely |
-| Focus on outcomes, not just activities | Communicate proactively |
-| Build long-term trust and relationships | Deliver on commitments consistently |
-
-### 2. Innovation
-
-Innovation is encouraged at every level, from individual contributors to leadership.
-
-| What It Means | Expected Actions |
-|---|---|
-| Challenge conventional thinking | Share new ideas openly |
-| Explore new technologies | Experiment responsibly |
-| Embrace AI-driven transformation | Keep learning emerging technologies |
-
-### 3. Excellence
-
-Quality is expected in every deliverable, interaction, and decision.
-
-| What It Means | Expected Actions |
-|---|---|
-| Strive for high standards | Pay attention to detail |
-| Focus on continuous improvement | Review work thoroughly |
-| Deliver reliable, scalable solutions | Seek feedback and improve |
-
-### 4. Integrity
-
-Trust is built through ethical behavior and transparency.
-
-| What It Means | Expected Actions |
-|---|---|
-| Be honest and respectful | Communicate openly |
-| Take responsibility for your actions | Admit mistakes quickly |
-| Maintain professional standards | Follow ethical practices |
-
-### 5. Collaboration
-
-Success is achieved when teams work together effectively.
-
-| What It Means | Expected Actions |
-|---|---|
-| Respect diverse perspectives | Work across teams |
-| Share knowledge actively | Help colleagues succeed |
-| Support team success | Build strong professional relationships |
+Our HR leadership describes **RESPECT FOR PEOPLE** as *"a core operating principle"* (Prasad Reddy, AVP, HR & IT, in a press feature listed on our Company Overview page). Our newsroom also features a story called *"Freedom To Be Happy."*
 
 ---
 
-## Everyday Behaviours
+## What We Value
 
-Our culture shows up in the everyday behaviours expected of every employee.
+These values come straight from what LevelShift and its leaders say publicly.
 
-| Behaviour | What It Looks Like |
-|---|---|
-| **Be Curious** | Ask questions · Seek deeper understanding · Learn continuously |
-| **Take Ownership** | Own your commitments · Be accountable for outcomes · Follow through on responsibilities |
-| **Communicate Clearly** | Share information transparently · Escalate risks early · Listen actively |
-| **Act with Empathy** | Understand customer and colleague perspectives · Show respect in every interaction · Foster an inclusive environment |
-| **Think Big, Start Small** | Focus on long-term goals · Execute in manageable steps · Learn and adapt quickly |
-| **Embrace Change** | Adapt to new technologies · Welcome feedback · Stay flexible and resilient |
-| **Deliver Results** | Prioritize impact · Meet commitments · Focus on measurable outcomes |
+| Value | What It Means at LevelShift | In Our Own Words |
+|---|---|---|
+| **People first** | Technology succeeds because of people. Leaders invest in growing future leaders. | *"Technology defines the era, but people define the value."* (CEO) |
+| **Repeatable excellence** | Disciplined processes, data-driven decisions and accountable ownership. | *"Scale is earned through repeatable excellence."* (COO) |
+| **Humans in control of AI** | We understand AI deeply and use it as an enabler, never a replacement. | *"Keeping control, and using it as an enabler, not a replacement."* (CTO) |
+| **Discipline and trust** | Protect data, and use it responsibly. | *"Securing financial data and enabling people to use it with discipline and trust."* (CFO) |
+| **Customer intent** | Stay attuned to what customers need, with the right context at the right time. | *"Keep every interaction relevant and meaningful."* (CMO) |
+| **AI-first mindset** | Align teams early and rethink how services are delivered. | *"AI isn't just a shift in technology, it's a shift in mindset."* (MD, Cloud Practice) |
+| **Data integrity** | Good AI starts with trustworthy data. | *"The integrity and authenticity of your data directly determines the quality of your AI outcomes."* (MD, Data, Analytics and EI) |
 
 ---
 
-## Ways of Working
+## The Living Enterprise Mindset
 
-### Customer-Centric Approach
+We help customers build a **Living Enterprise**, one that *senses, learns and evolves*. We work the same way ourselves:
 
-Every project begins with understanding business value, customer goals, and expected outcomes.
+- **Lower decision latency:** decide and act quickly.
+- **Less organizational friction:** remove what slows teams down.
+- **Increased autonomy:** trust people to own their work.
+- **Continuous learning:** learn from every feedback loop.
+- **Human in control:** AI supports people. It does not replace their judgement.
 
-**Key practices:**
-- Requirement discovery sessions
-- Collaborative planning
-- Regular status updates
-- Outcome-based delivery
+---
 
-### Agile Mindset
+## Learning and Growth
 
-Teams typically work using agile principles:
+- **Grow from within.** Most of our leaders joined in 2000 or 2001 and grew with the company, often working in several roles: development, delivery, operations, quality and marketing.
+- **Get certified.** LevelShift has **500+ certified experts** across Salesforce, Microsoft, Boomi and AI. That includes 100+ Microsoft-certified professionals, 50+ Microsoft Fabric-certified experts and 50+ Perforce Delphix-certified specialists.
+- **Centres of Excellence.** You can learn from our AI, Integration and Test Data Management Centres of Excellence.
 
-- Incremental delivery
-- Continuous feedback
-- Sprint planning and reviews
-- Rapid adaptation to change
+---
 
-**Benefits:** faster value delivery, greater transparency, and better risk management.
+## Stay Safe: Recruitment Fraud Alert
 
-### Continuous Learning
+Our Careers page warns about fake job offers:
 
-Employees are encouraged to build expertise in:
-
-- Artificial Intelligence
-- Microsoft technologies
-- Salesforce ecosystem
-- Cloud platforms
-- Data engineering
-- Business applications
-
-**Learning methods:**
-- Certifications
-- Internal training programs
-- Knowledge-sharing sessions
-- Hands-on project experience
-
-### Collaboration First
-
-Work is carried out through close coordination among:
-
-- Business stakeholders
-- Delivery teams
-- Architects
-- Engineers
-- Consultants
-- Customer success teams
-
-**Focus areas:** open communication, knowledge sharing, cross-functional teamwork, and collective problem solving.
-
-### Innovation-Driven Execution
-
-Employees are encouraged to:
-
-- Use AI tools responsibly
-- Automate repetitive work
-- Improve processes continuously
-- Propose ideas that improve efficiency and customer outcomes
+- LevelShift recruiters use **@levelshift.com** email addresses only.
+- LevelShift **never asks for fees** during hiring.
+- If you are unsure, check with **joinus@levelshift.com**.
 
 ---
 
 ## Our Culture in One Line
 
-> **"Learn Continuously, Innovate Boldly, Collaborate Deeply, and Deliver Customer Success."**
-
-This motto captures the essence of LevelShift's culture, values, behaviours, and ways of working: combining people, technology, and AI-driven innovation to create meaningful business impact.
+> **People first, humans in control, and an enterprise built to evolve.**

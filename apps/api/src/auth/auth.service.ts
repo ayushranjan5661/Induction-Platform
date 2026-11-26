@@ -46,8 +46,25 @@ export class AuthService {
     return this.config.get('APP_URL', { infer: true }).replace(/\/$/, '');
   }
 
+  get candidateAppUrl(): string {
+    return this.config.get('CANDIDATE_APP_URL', { infer: true }).replace(/\/$/, '');
+  }
+
+  /** Invitation links open the candidate app. */
   inviteUrl(token: string): string {
-    return `${this.appUrl}/invite/${token}`;
+    return `${this.candidateAppUrl}/invite/${token}`;
+  }
+
+  /** Candidates sign in on their own page; staff use the staff page. */
+  signInUrl(role: User['role']): string {
+    const configured =
+      role === 'LEARNER'
+        ? this.config.get('CANDIDATE_LOGIN_URL', { infer: true })
+        : this.config.get('STAFF_LOGIN_URL', { infer: true });
+    return (
+      configured ??
+      (role === 'LEARNER' ? `${this.candidateAppUrl}/candidate` : `${this.appUrl}/login`)
+    );
   }
 
   async authenticate(email: string, password: string): Promise<User | null> {
@@ -58,6 +75,8 @@ export class AuthService {
 
   async authenticateDev(email: string): Promise<User | null> {
     if (!this.devLoginEnabled) return null;
+    // Only the synthetic demo accounts; real accounts always need a password.
+    if (!email.toLowerCase().endsWith('@example.com')) return null;
     return this.prisma.user.findFirst({ where: { email, isActive: true } });
   }
 

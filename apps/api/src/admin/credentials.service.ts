@@ -67,6 +67,7 @@ export class CredentialsService {
       password,
       inviteUrl: invite ? this.auth.inviteUrl(invite.token) : null,
       inviteExpiresAt: expires?.toISOString() ?? null,
+      signInUrl: this.auth.signInUrl(user.role),
     };
   }
 }

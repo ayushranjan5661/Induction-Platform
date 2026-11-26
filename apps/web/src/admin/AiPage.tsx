@@ -301,7 +301,11 @@ function AiEditor({ saved }: { saved: AiDraftDto | null }): ReactElement {
               {presenter && (
                 <PresenterPreview avatar={presenter} segments={segments} className="h-56" />
               )}
-              <SegmentsEditor segments={segments} onChange={setSegments} />
+              <SegmentsEditor
+                segments={segments}
+                onChange={setSegments}
+                manner={presenter?.personalityNotes}
+              />
               <Button variant="primary" onClick={() => setSaving(true)}>
                 Add to module as a step…
               </Button>

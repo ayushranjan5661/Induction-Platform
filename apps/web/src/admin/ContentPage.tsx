@@ -645,7 +645,11 @@ export function StepForm({
           {speaks ? (
             <div>
               <p className="mb-1 text-sm font-medium text-slate-700">Script</p>
-              <SegmentsEditor segments={segments} onChange={setSegments} />
+              <SegmentsEditor
+                segments={segments}
+                onChange={setSegments}
+                manner={presenter?.personalityNotes}
+              />
             </div>
           ) : (
             <Notice>

@@ -1,8 +1,9 @@
 /**
  * Default induction content (used by the seed and by "Reset to default"), written from the source notes in /Data.
+ * Company, founders, culture and business-unit facts come from levelshift.com (read 26 Nov 2026).
  *
- * Company content only - no real employee data. Wording, business units and
- * founder scripts are drafts that HR / Marketing must confirm before go-live.
+ * Company content only - no real employee data. Wording and the business-unit
+ * grouping are drafts that HR / Marketing must confirm before go-live.
  */
 import type { AvatarAppearance } from '@induction/shared';
 import type { Emotion, Gesture } from '@prisma/client';
@@ -24,7 +25,12 @@ export interface AvatarDef {
   key: AvatarKey;
   name: string;
   title: string;
-  appearance: AvatarAppearance;
+  /** Fields left out (figure, build, bottom, colours) take the schema defaults. */
+  appearance: Pick<
+    AvatarAppearance,
+    'skin' | 'hair' | 'hairStyle' | 'outfit' | 'shirt' | 'glasses' | 'beard' | 'earrings'
+  > &
+    Partial<AvatarAppearance>;
   voiceGender: 'female' | 'male';
   voiceLang: string;
   voicePitch: number;
@@ -78,6 +84,9 @@ export const AVATARS: AvatarDef[] = [
       skin: '#C68B5E',
       hair: '#2B1B12',
       hairStyle: 'long',
+      top: 'jacket',
+      bottom: 'skirt',
+      pants: '#1F2A44',
       outfit: '#2563EB',
       shirt: '#FFFFFF',
       glasses: false,
@@ -104,6 +113,7 @@ export const AVATARS: AvatarDef[] = [
       skin: '#B9794C',
       hair: '#8A8F98',
       hairStyle: 'sidePart',
+      top: 'shirt',
       outfit: '#1F2937',
       shirt: '#E5E7EB',
       glasses: true,
@@ -130,6 +140,8 @@ export const AVATARS: AvatarDef[] = [
       skin: '#A86B43',
       hair: '#3A3A3A',
       hairStyle: 'short',
+      top: 'sweater',
+      build: 'broad',
       outfit: '#7C2D12',
       shirt: '#FDF6E3',
       glasses: false,
@@ -156,6 +168,8 @@ export const AVATARS: AvatarDef[] = [
       skin: '#E8B48C',
       hair: '#5B2C83',
       hairStyle: 'curly',
+      top: 'tee',
+      build: 'slim',
       outfit: '#DB2777',
       shirt: '#FFF1F7',
       glasses: false,
@@ -182,6 +196,7 @@ export const AVATARS: AvatarDef[] = [
       skin: '#8D5A3B',
       hair: '#16110D',
       hairStyle: 'short',
+      top: 'polo',
       outfit: '#4F46E5',
       shirt: '#FFFFFF',
       glasses: true,
@@ -208,6 +223,8 @@ export const AVATARS: AvatarDef[] = [
       skin: '#D9A066',
       hair: '#1C1410',
       hairStyle: 'bun',
+      top: 'jacket',
+      pants: '#2F3440',
       outfit: '#7F1D1D',
       shirt: '#F8FAFC',
       glasses: true,
@@ -231,11 +248,14 @@ export const AVATARS: AvatarDef[] = [
     name: 'Kabir',
     title: 'Business Units Guide',
     appearance: {
-      skin: '#F0C6A0',
-      hair: '#6B3F1D',
+      skin: '#C98B5E',
+      hair: '#1A1412',
       hairStyle: 'sidePart',
-      outfit: '#7C3AED',
-      shirt: '#FDE68A',
+      top: 'vest',
+      pants: '#6F8C9C',
+      outfit: '#6F8C9C',
+      shirt: '#EEDCA5',
+      shoes: '#4A1F1F',
       glasses: false,
       beard: false,
       earrings: false,
@@ -260,6 +280,8 @@ export const AVATARS: AvatarDef[] = [
       skin: '#7A4A2E',
       hair: '#0F0A07',
       hairStyle: 'bob',
+      top: 'sweater',
+      bottom: 'skirt',
       outfit: '#059669',
       shirt: '#ECFDF5',
       glasses: false,
@@ -290,43 +312,49 @@ export const PRAISE_LINES: readonly Seg[] = [
 /** Lead-in an avatar speaks before any question pops up. */
 export const QUESTION_LEAD_IN: Seg = ['Quick check before we move on.', 'ENCOURAGING', 'THINK'];
 
-/** Draft business units, inferred from the company notes. Confirm with HR. */
+/** Delivery teams, taken from the practices and services on levelshift.com. Confirm with HR. */
 export const BUSINESS_UNITS = [
   {
     slug: 'cloud-practice',
     name: 'Cloud Practice',
     description:
-      'Salesforce consulting and implementation: CRM, Agentforce, Data Cloud, Sales Cloud, Service Cloud and Field Service.',
+      'Led by Selva Pandian. Cloud, data, AI and analytics, including enterprise-scale Salesforce implementations (Agentforce, Data Cloud, Field Service).',
   },
   {
     slug: 'data-analytics-ei',
-    name: 'Data, Analytics & Enterprise Integration',
+    name: 'Data, Analytics & Enterprise Intelligence',
     description:
-      'Data platform modernization, business intelligence, analytics, API management and workflow automation.',
+      'Led by Kumar Vellore. Data modernization, enterprise integration (Boomi, MuleSoft, Workato, Azure) and DevOps and test data management.',
   },
   {
     slug: 'microsoft-business-applications',
     name: 'Microsoft Business Applications',
     description:
-      'Dynamics 365, Power Platform and Azure-based solutions for CRM and ERP modernization.',
+      'Dynamics 365 ERP and CRM: advisory, migration, custom development and support. Grew out of DemandDynamics.',
   },
   {
     slug: 'ai-transformation',
-    name: 'AI Transformation',
+    name: 'Enterprise AI',
     description:
-      'AI strategy, readiness assessments, machine learning, natural language solutions and responsible AI governance.',
+      'Moves AI from pilot to production: AI strategy, architecture, governance, development and adoption, backed by 150+ pre-built agents.',
+  },
+  {
+    slug: 'business-process-services',
+    name: 'Business Process Services',
+    description:
+      'Led by Madhavi Parimelazhagan. AI and ML workflows with human review: medical records, leases, financial data, data management and contracts.',
   },
 ] as const;
 
 export const MODULES: ModuleDef[] = [
   /* ---------------------------------------------------------------- */
-  /* 1. Company Introduction (Data/Company)                            */
+  /* 1. Company Introduction (Data/Company, from levelshift.com)       */
   /* ---------------------------------------------------------------- */
   {
     slug: 'company-introduction',
     title: 'Company Introduction',
     description:
-      'Who we are, what we do, our ShiftEVA platform, and the milestones that shaped LevelShift.',
+      'Who we are, what we deliver, the Living Enterprise and ShiftEVA, and the milestones that shaped LevelShift.',
     avatar: 'company',
     requiresAcknowledgment: false,
     steps: [
@@ -343,7 +371,7 @@ export const MODULES: ModuleDef[] = [
             'OPEN_ARMS',
           ],
           [
-            "You'll meet our founders, learn about our culture, go through the policies and compliance essentials every employee needs, and take a tour of our business units.",
+            "You'll meet our founders and leaders, learn about our culture, go through the policies and compliance essentials every employee needs, and take a tour of our delivery teams.",
             'NEUTRAL',
             'COUNT_THREE',
           ],
@@ -366,22 +394,22 @@ export const MODULES: ModuleDef[] = [
         emotion: 'PROUD',
         segs: [
           [
-            'LevelShift is a global AI transformation and technology consulting company. Our story began back in 1998.',
+            'LevelShift is your AI transformation partner: a global technology solutions provider whose story began back in 1998.',
             'NEUTRAL',
             'SHOW_FRONT',
           ],
           [
-            'We bring together the strengths of three companies, PreludeSys, DemandBlue and DemandDynamics, under one brand with one purpose: helping enterprises become AI-native organizations.',
+            'In 2025, we brought three companies, PreludeSys, DemandBlue and DemandDynamics, together under one brand, across Salesforce, Microsoft, Data and AI.',
             'PROUD',
             'COUNT_THREE',
           ],
           [
-            "We're headquartered in Irvine, California, and we work through a global delivery model, serving organizations all around the world.",
+            'Our headquarters is in Irvine, California. We work through a global delivery model, and we hire in both the United States and India.',
             'FRIENDLY',
             'POINT_RIGHT',
           ],
           [
-            "More than three hundred customers trust us, and our team is somewhere between five hundred and a thousand people strong. And we've been certified as a Great Place to Work for several years in a row.",
+            "We bring more than twenty-seven years of experience, over three hundred customers trust us, and we've been certified as a Great Place to Work six years in a row, from 2021 to 2027.",
             'PROUD',
             'THUMBS_UP',
           ],
@@ -399,14 +427,19 @@ export const MODULES: ModuleDef[] = [
             'COUNT_TWO',
           ],
           [
-            'Our vision is to be the trusted strategic partner that helps organizations successfully navigate digital and AI transformation, while delivering future-ready technology solutions.',
+            'Our vision is to be the trusted strategic partner for organizations navigating their transformation journey, delivering tailored, future-ready technology solutions that drive business evolution.',
             'HOPEFUL',
             'OPEN_ARMS',
           ],
           [
-            'Our mission is to enable customers to become AI-native enterprises, by embedding artificial intelligence across their core business functions and processes.',
+            'Our mission is to enable customers to become AI-native enterprises, by embedding AI across core business functions.',
             'PROUD',
             'SHOW_FRONT',
+          ],
+          [
+            'We treat AI transformation as a strategic choice. A customer can build on their existing digital foundations, reinvent as AI-native, or blend the two. We support them with industry-focused solutions, tailored roadmaps and AI Centers of Excellence.',
+            'NEUTRAL',
+            'COUNT_THREE',
           ],
           [
             "In short: the vision is where we're heading, and the mission is how we help our customers get there.",
@@ -418,32 +451,32 @@ export const MODULES: ModuleDef[] = [
       { type: 'QUESTION', pool: 'who-we-are' },
       {
         type: 'VIDEO',
-        title: 'What We Do',
+        title: 'What We Deliver',
         topic: 'what-we-do',
         emotion: 'FRIENDLY',
         segs: [
           [
-            'So what do we actually do? We help organizations modernize their technology and transform into AI-powered enterprises, through consulting, implementation, AI solutions and business transformation programs.',
+            'So what do we actually deliver? Our tagline says it best: AI-native enterprise solutions across data, integration and applications.',
             'FRIENDLY',
             'OPEN_ARMS',
           ],
           [
-            'Our core services fall into four areas. First, AI transformation: AI strategy, readiness assessments, machine learning, natural language processing, and AI governance, security and responsible AI.',
-            'NEUTRAL',
+            'First, Enterprise AI. We help customers move AI from pilot to production, with more than one hundred and fifty pre-built AI agents, and easy starting points like a ten-minute AI Maturity Assessment or a one-day Discovery Workshop.',
+            'EXCITED',
             'COUNT_ONE',
           ],
           [
-            'Second, data modernization: modern data platforms, business intelligence and analytics, data governance, cloud data architectures, and Microsoft data solutions including Power BI.',
+            'Second, Data Modernization, built on our own LevelShift Data Modernization Framework, with Foundation, Transformation and Activation layers, across Microsoft, Databricks and AWS.',
             'NEUTRAL',
             'COUNT_TWO',
           ],
           [
-            'Third, enterprise integration: connecting business systems through API management, application integration, workflow automation and hybrid cloud integration.',
+            'Third, Enterprise Integration: connecting apps, unifying data and orchestrating workflows, on platforms such as Boomi, MuleSoft, Workato and Azure Integration.',
             'NEUTRAL',
             'COUNT_THREE',
           ],
           [
-            'And fourth, enterprise applications: CRM implementation, ERP modernization, business process optimization and customer experience transformation.',
+            'And fourth, Enterprise Applications, on Salesforce, Microsoft Dynamics 365 and SAP, covering front, middle and back-office processes.',
             'FRIENDLY',
             'POINT_RIGHT',
           ],
@@ -451,27 +484,23 @@ export const MODULES: ModuleDef[] = [
       },
       {
         type: 'VIDEO',
-        title: 'Our Technology Expertise',
+        title: 'More Ways We Help',
         topic: 'what-we-do',
         emotion: 'EXCITED',
         segs: [
+          ['We also offer two specialist services.', 'FRIENDLY', 'COUNT_TWO'],
           [
-            'Behind those services sits deep expertise in two major technology ecosystems.',
-            'FRIENDLY',
-            'COUNT_TWO',
-          ],
-          [
-            'In Salesforce, we do CRM consulting and implementation, Agentforce, Data Cloud, Sales Cloud and Service Cloud, and Field Service solutions.',
+            'DevOps and Test Data Management: data privatization, synthetic test data and AI-powered automation, with our technology partner Perforce, including Delphix, BlazeMeter and Perfecto.',
             'NEUTRAL',
             'POINT_LEFT',
           ],
           [
-            'In Microsoft, we work with Dynamics 365, Power Platform, Azure-based data solutions, and enterprise applications and integrations.',
+            'And Business Process Services, where AI workflows and human review handle work such as medical record review, lease management, financial data processing and contract management.',
             'NEUTRAL',
             'POINT_RIGHT',
           ],
           [
-            'We also bring strong DevOps and data management practices: continuous delivery, test automation, data quality and governance, and development processes that work at enterprise scale.',
+            'Across all of this, we have more than five hundred certified experts in Salesforce, Microsoft, Boomi and AI.',
             'PROUD',
             'NOD',
           ],
@@ -479,27 +508,27 @@ export const MODULES: ModuleDef[] = [
       },
       {
         type: 'VIDEO',
-        title: 'ShiftEVA',
+        title: 'The Living Enterprise and ShiftEVA',
         topic: 'shifteva',
         emotion: 'EXCITED',
         segs: [
           [
-            "Now let me tell you about one of our flagship offerings. It's called ShiftEVA.",
+            'Now let me tell you about our big idea: the Living Enterprise, and the platform behind it, ShiftEVA.',
             'EXCITED',
             'SHOW_FRONT',
           ],
           [
-            'ShiftEVA is a transformation platform designed to create what we call a Living Enterprise: an organization that keeps sensing, learning and improving.',
+            'A Living Enterprise is one that senses, learns and evolves. ShiftEVA, our transformation platform, gets there in three steps.',
             'HOPEFUL',
             'OPEN_ARMS',
           ],
           [
-            'A Living Enterprise observes through unified telemetry, and learns from business feedback loops. Over time it increases organizational autonomy, and reduces decision latency, which simply means decisions get made faster.',
+            'Reimagine for autonomy. Observe through unified telemetry. And learn from a feedback loop. The result is an enterprise built to evolve.',
             'NEUTRAL',
             'COUNT_THREE',
           ],
           [
-            'And most importantly, it keeps humans in control of AI-driven operations. AI assists; people decide.',
+            'That means lower decision latency, which simply means faster decisions, less friction, more autonomy, and continuous learning. And most importantly, humans stay in control.',
             'SERIOUS',
             'HAND_ON_HEART',
           ],
@@ -508,24 +537,20 @@ export const MODULES: ModuleDef[] = [
       { type: 'QUESTION', pool: 'shifteva' },
       {
         type: 'VIDEO',
-        title: 'What Makes Us Different',
+        title: 'Recognition and Partners',
         topic: 'what-we-do',
         emotion: 'PROUD',
         segs: [
+          ['So how do others see us?', 'FRIENDLY', 'THINK'],
           [
-            'Plenty of companies work with technology. So what makes LevelShift different?',
-            'FRIENDLY',
-            'THINK',
-          ],
-          [
-            'We combine deep industry expertise, AI Centers of Excellence, Salesforce ecosystem knowledge, Microsoft technology expertise, data and integration capabilities, and end-to-end transformation services.',
+            'Forrester named us in its Salesforce Consulting Services Landscape, for Agentforce, Data Cloud and Field Service. And ISG featured us in its Provider Lens, for our Salesforce capabilities and client satisfaction.',
             'PROUD',
             'SHOW_FRONT',
           ],
           [
-            'But the real difference is our focus. We measure success by the business outcomes our customers achieve, not simply by how much technology gets implemented.',
-            'SERIOUS',
-            'NOD',
+            "We were named Perforce Partner of the Year. We're a Salesforce Summit Partner, a Microsoft Solutions Partner and a Microsoft Fabric Featured Partner, and we hold SOC 2 certification.",
+            'PROUD',
+            'COUNT_THREE',
           ],
         ],
       },
@@ -537,17 +562,17 @@ export const MODULES: ModuleDef[] = [
         emotion: 'HOPEFUL',
         segs: [
           [
-            'Let me take you through our journey. It began in 1998, when PreludeSys was founded, focusing on enterprise systems, managed IT services, digital operations and technology enablement. That laid the foundation for everything that followed.',
+            'Let me take you through our journey. It began in 1998 with PreludeSys, focused on enterprise systems, managed IT and digital operations. That is where it all began.',
             'HOPEFUL',
             'POINT_LEFT',
           ],
           [
-            'In 2012, we expanded into Salesforce with the launch of DemandBlue, offering Salesforce consulting, CRM transformation and on-demand Salesforce expertise. DemandBlue grew to become a Summit-tier Salesforce partner.',
+            'In 2012, we expanded into Salesforce with DemandBlue, which grew to become a Summit-tier Salesforce partner.',
             'PROUD',
             'COUNT_TWO',
           ],
           [
-            "In 2020, DemandDynamics was introduced to focus on Microsoft Dynamics 365, Microsoft business applications and enterprise modernization. That expanded our expertise across Microsoft's technology stack.",
+            'In 2020, DemandDynamics took us into Microsoft, with Dynamics 365 services.',
             'NEUTRAL',
             'COUNT_THREE',
           ],
@@ -560,22 +585,22 @@ export const MODULES: ModuleDef[] = [
         emotion: 'EXCITED',
         segs: [
           [
-            'From 2021 onward, the company earned repeated Great Place to Work certifications, a reflection of our employee-focused culture.',
+            'From 2021 to 2027, we have been certified as a Great Place to Work six years in a row.',
             'PROUD',
             'APPLAUD',
           ],
           [
-            'Then, in 2025, came a big moment. PreludeSys, DemandBlue and DemandDynamics were unified under a single brand: LevelShift.',
+            'Then, in 2025, came the next chapter. PreludeSys, DemandBlue and DemandDynamics became one brand: LevelShift.',
             'EXCITED',
             'OPEN_ARMS',
           ],
           [
-            'That gave us one unified, AI-first identity, expertise across platforms, stronger AI capabilities, and a single transformation partner for our customers.',
+            'One brand across Salesforce, Microsoft, Data and AI, and one partner for our customers.',
             'PROUD',
             'COUNT_THREE',
           ],
           [
-            "Today, we help more than three hundred organizations use AI, data, integration, cloud, Salesforce and Microsoft technologies to build intelligent, adaptive and future-ready enterprises. And now, you're part of that story.",
+            "Today, more than three hundred organizations around the world trust us to help them become AI-native. And now, you're part of that story.",
             'HOPEFUL',
             'HAND_ON_HEART',
           ],
@@ -586,7 +611,7 @@ export const MODULES: ModuleDef[] = [
         type: 'TRANSITION',
         segs: [
           [
-            "You now know who we are and where we came from. Next, you'll hear from the people who started it all. Over to our founders!",
+            "You now know who we are and where we came from. Next, you'll hear from our founders and meet our leadership team!",
             'EXCITED',
             'OPEN_ARMS',
           ],
@@ -599,13 +624,13 @@ export const MODULES: ModuleDef[] = [
         text: 'Which three companies came together to form LevelShift?',
         options: [
           'PreludeSys, DemandBlue and DemandDynamics',
-          'PreludeSys, Sybrant and ShiftEVA',
+          'PreludeSys, ShiftEVA and Boomi',
           'DemandBlue, Agentforce and Data Cloud',
           'DemandDynamics, PowerShift and BlueSys',
         ],
         hint: "Two of the three names begin with the word 'Demand'.",
         explanation:
-          'LevelShift unites PreludeSys, DemandBlue and DemandDynamics. Think of it as three specialists forming one team: enterprise systems, Salesforce and Microsoft.',
+          'LevelShift unites PreludeSys, DemandBlue and DemandDynamics: enterprise systems, Salesforce and Microsoft, now one brand.',
       },
       {
         topic: 'who-we-are',
@@ -631,37 +656,40 @@ export const MODULES: ModuleDef[] = [
         ],
         hint: 'The mission is about embedding AI across core business functions.',
         explanation:
-          'Our mission is to enable customers to become AI-native enterprises by embedding AI across their core business functions and processes, with people still firmly in charge.',
+          'Our mission is to enable customers to become AI-native enterprises by embedding AI across core business functions.',
       },
       {
         topic: 'what-we-do',
-        text: 'Which of these is one of our four core service areas?',
+        text: 'Which of these is one of the services LevelShift delivers?',
         options: [
-          'Data modernization',
+          'Data Modernization',
           'Hardware manufacturing',
           'Retail banking',
           'Logistics and shipping',
         ],
-        hint: 'The four areas are AI transformation, enterprise integration, enterprise applications and one more about information.',
+        hint: 'Our tagline: AI-native enterprise solutions across data, integration and applications.',
         explanation:
-          'Our four core service areas are AI transformation, data modernization, enterprise integration and enterprise applications.',
+          'We deliver Enterprise AI, Data Modernization, Enterprise Integration and Enterprise Applications, plus DevOps and Test Data Management and Business Process Services.',
       },
       {
         topic: 'what-we-do',
-        text: 'What does LevelShift measure its success by?',
-        options: [
-          'The business outcomes customers achieve',
-          'How much technology gets installed',
-          'The number of meetings held',
-          'The size of each project team',
-        ],
-        hint: 'Think about what the customer actually feels at the end of a project.',
+        text: 'Which company named LevelShift its Partner of the Year?',
+        options: ['Perforce', 'Forrester', 'ISG', 'Gartner'],
+        hint: 'It is our technology partner for DevOps and test data, the maker of Delphix.',
         explanation:
-          'We focus on measurable business outcomes, not just implementing technology. A new system only matters if it makes the business better.',
+          'Perforce named us Partner of the Year for delivery quality across DevOps and data platforms. Forrester and ISG are analyst firms that featured us in their reports.',
+      },
+      {
+        topic: 'what-we-do',
+        text: 'Roughly how many certified experts does LevelShift have?',
+        options: ['More than 500', 'About 10', 'About 50', 'None'],
+        hint: 'It is in the hundreds, across Salesforce, Microsoft, Boomi and AI.',
+        explanation:
+          'LevelShift has more than five hundred certified experts across Salesforce, Microsoft, Boomi and AI.',
       },
       {
         topic: 'shifteva',
-        text: 'What does ShiftEVA always keep in control of AI-driven operations?',
+        text: 'In a Living Enterprise built with ShiftEVA, who stays in control?',
         options: [
           'Humans',
           'The AI model itself',
@@ -670,20 +698,33 @@ export const MODULES: ModuleDef[] = [
         ],
         hint: 'AI assists, but who decides?',
         explanation:
-          'ShiftEVA keeps humans in control. It observes, learns and speeds up decisions, but people stay in charge of AI-driven operations.',
+          'Humans stay in control. The Living Enterprise speeds up decisions and learns continuously, but people stay in charge.',
       },
       {
         topic: 'shifteva',
-        text: 'ShiftEVA is designed to create what kind of organization?',
+        text: 'How does LevelShift describe a Living Enterprise?',
         options: [
-          'A Living Enterprise',
-          'A Paperless Office',
-          'A Fully Outsourced Company',
-          'A Static Enterprise',
+          'One that senses, learns and evolves',
+          'One that never changes its processes',
+          'One that is fully outsourced',
+          'One that runs without any feedback',
         ],
-        hint: 'It is an organization that keeps sensing, learning and improving, like something alive.',
+        hint: 'Think of something alive.',
         explanation:
-          'ShiftEVA creates a Living Enterprise: one that observes through telemetry, learns from feedback, increases autonomy and reduces decision latency, with humans in control.',
+          'A Living Enterprise senses, learns and evolves. ShiftEVA gets there by reimagining for autonomy, observing through unified telemetry and learning from a feedback loop.',
+      },
+      {
+        topic: 'shifteva',
+        text: 'Which of these is one of the three ShiftEVA steps?',
+        options: [
+          'Observe through unified telemetry',
+          'Remove people from every decision',
+          'Freeze all processes',
+          'Outsource the feedback loop',
+        ],
+        hint: 'The three steps are reimagine, observe and learn.',
+        explanation:
+          'ShiftEVA works in three steps: reimagine for autonomy, observe through unified telemetry, and learn from a feedback loop.',
       },
       {
         topic: 'milestones',
@@ -691,20 +732,20 @@ export const MODULES: ModuleDef[] = [
         options: ['2025', '1998', '2012', '2020'],
         hint: 'It is the most recent milestone on our timeline.',
         explanation:
-          'The story runs 1998, 2012, 2020, and then 2025, when PreludeSys, DemandBlue and DemandDynamics became one brand: LevelShift.',
+          'The story runs 1998, 2012, 2020, and then 2025, the next chapter, when PreludeSys, DemandBlue and DemandDynamics became one brand: LevelShift.',
       },
       {
         topic: 'milestones',
         text: 'What did DemandBlue, launched in 2012, focus on?',
         options: [
-          'Salesforce consulting',
+          'Salesforce',
           'Microsoft Dynamics 365',
           'Managed IT services',
           'Hardware manufacturing',
         ],
         hint: 'Think CRM, and a partner tier called Summit.',
         explanation:
-          'DemandBlue was our Salesforce specialist and grew into a Summit-tier Salesforce partner. Blue, like the Salesforce cloud, is an easy way to remember it.',
+          'DemandBlue took us into Salesforce and grew into a Summit-tier Salesforce partner. Blue, like the Salesforce cloud, is an easy way to remember it.',
       },
       {
         topic: 'milestones',
@@ -712,19 +753,19 @@ export const MODULES: ModuleDef[] = [
         options: ['PreludeSys', 'DemandBlue', 'DemandDynamics', 'LevelShift'],
         hint: "Its name suggests it's the opening of the story.",
         explanation:
-          'PreludeSys came first, in 1998. A prelude is the opening of a piece of music, which is a handy way to remember that it started it all.',
+          'PreludeSys came first, in 1998: "where it all began." A prelude is the opening of a piece of music.',
       },
     ],
   },
 
   /* ---------------------------------------------------------------- */
-  /* 2. Founders' Introduction (Data/Founders)                         */
+  /* 2. Founders' Introduction (Data/Founders, from levelshift.com)    */
   /* ---------------------------------------------------------------- */
   {
     slug: 'founders-introduction',
     title: "Founders' Introduction",
     description:
-      'Meet the founders and leadership team: why LevelShift was built, how it grew, and where it is going.',
+      'Meet our founders and leadership team: what they believe, how they grew with the company, and where we are going.',
     avatar: 'founderRaj',
     requiresAcknowledgment: false,
     steps: [
@@ -741,14 +782,9 @@ export const MODULES: ModuleDef[] = [
             'NOD',
           ],
           [
-            "My background is in the engineering, medical equipment and aerospace industries, in both India and the United States. I'm a mechanical engineer by training, with certificates in systems engineering and manufacturing engineering.",
-            'NEUTRAL',
-            'SHOW_FRONT',
-          ],
-          [
-            'Today I lead strategic planning and operational improvement at LevelShift. I also consult on project management and program planning for a leading US defense organization.',
+            'Our story began in 1998 as PreludeSys, working on enterprise systems, managed IT and digital operations. Today, that same story continues as LevelShift, your AI transformation partner.',
             'PROUD',
-            'POINT_RIGHT',
+            'SHOW_FRONT',
           ],
         ],
       },
@@ -760,53 +796,14 @@ export const MODULES: ModuleDef[] = [
         avatar: 'founderRamki',
         segs: [
           [
-            "And I'm Ramki Ramakrishnen, Founder Director. Welcome! I'm so glad you're here.",
+            "And I'm Ramki Ramakrishnen, one of our founders. Welcome! I'm so glad you're here.",
             'CHEERFUL',
             'WAVE',
           ],
           [
-            "I'm a serial entrepreneur. My career has taken me through international finance, global supply chain, and manufacturing for the oil and gas, hydraulics and automobile industries.",
+            "In this module, we'll share our mission and vision, what our leaders believe, and introduce you to the team that guides LevelShift today.",
             'FRIENDLY',
             'OPEN_ARMS',
-          ],
-          [
-            "I've founded and led six companies, including Indoshell Precision Technologies, with plants in Coimbatore and Iowa, IndoAutoShell American Corporation, GlobalExim Corporation, and even two film companies, Sindhujaa Films and SunMoonStars Film Studio.",
-            'PROUD',
-            'COUNT_THREE',
-          ],
-          [
-            'Earlier on, I served as a Vice President at a leading investment company in Houston and at a leading public-sector bank in India. I studied finance at the University of Houston, criminology, and management at Madras University.',
-            'NEUTRAL',
-            'NOD',
-          ],
-        ],
-      },
-      {
-        type: 'VIDEO',
-        title: 'Built by Founders from Many Industries',
-        topic: 'founding-journey',
-        emotion: 'PROUD',
-        avatar: 'founderRamki',
-        segs: [
-          [
-            'As you can tell, LevelShift was not founded by people from just one industry.',
-            'FRIENDLY',
-            'THINK',
-          ],
-          [
-            'Its founders came from engineering, aerospace, medical equipment, international finance, supply chain and manufacturing, in both India and the United States.',
-            'NEUTRAL',
-            'SHOW_FRONT',
-          ],
-          [
-            "What Raj and I brought with us is a builder's mindset, from running businesses across continents. Plan carefully, run things well, and keep growing.",
-            'PROUD',
-            'HAND_ON_HEART',
-          ],
-          [
-            "That builder's mindset still shapes how LevelShift plans, runs and grows today.",
-            'HOPEFUL',
-            'NOD',
           ],
         ],
       },
@@ -818,52 +815,51 @@ export const MODULES: ModuleDef[] = [
         avatar: 'founderRaj',
         segs: [
           [
-            'We believe technology only matters when it produces real business outcomes.',
+            'Our mission is to enable customers to become AI-native enterprises, by embedding AI across core business functions.',
             'SERIOUS',
             'SHOW_FRONT',
           ],
           [
-            'So our mission is to help organizations turn technology into real business outcomes, by bringing together people, processes and technology across cloud, data, analytics, AI and enterprise applications.',
-            'NEUTRAL',
-            'COUNT_THREE',
-          ],
-          [
-            'We want solutions that are technically sound, and that also make work simpler and better for the people who use them.',
-            'EMPATHETIC',
-            'HAND_ON_HEART',
-          ],
-          [
-            'Our vision is to be a trusted transformation partner for customers around the world, and a place where people grow into leaders. We want to be known for curiosity, getting things done, and lasting impact.',
+            'Our vision is to be the trusted strategic partner for organizations navigating their transformation journey, delivering tailored, future-ready technology solutions that drive business evolution.',
             'HOPEFUL',
             'OPEN_ARMS',
+          ],
+          [
+            'And we build all of it on one principle: people first, with humans always in control of AI.',
+            'EMPATHETIC',
+            'HAND_ON_HEART',
           ],
         ],
       },
       {
         type: 'VIDEO',
-        title: 'What We Believe',
+        title: 'What Our Leaders Believe',
         topic: 'vision',
         emotion: 'FRIENDLY',
         avatar: 'founderRamki',
         segs: [
-          ['Let me share five beliefs that guide everything we do.', 'FRIENDLY', 'OPEN_ARMS'],
           [
-            'One: people drive transformation. Technology succeeds when teams are empowered, mentored and trusted.',
+            "Let me share five beliefs you'll hear from our leaders, in their own words.",
+            'FRIENDLY',
+            'OPEN_ARMS',
+          ],
+          [
+            'One: people define the value. As our CEO, Kiran Babu Chandra, puts it: technology defines the era, but people define the value.',
             'PROUD',
             'COUNT_ONE',
           ],
           [
-            'Two: curiosity and continuous improvement. We keep learning, adapting and getting better, one improvement at a time.',
-            'HOPEFUL',
+            'Two: repeatable excellence. Our COO, Chandramohan Parlapalli, says scale is earned through repeatable excellence: disciplined processes, data-driven decisions and accountable ownership.',
+            'SERIOUS',
             'COUNT_TWO',
           ],
           [
-            'Three: human-centered innovation. AI and automation work best when they are designed with empathy.',
-            'EMPATHETIC',
+            'Three: AI as an enabler, not a replacement. Our CTO, Manoj Chandra, reminds us that the real advantage lies in understanding AI deeply and keeping control.',
+            'HOPEFUL',
             'COUNT_THREE',
           ],
           [
-            'Four: discipline and integrity. Sound governance, financial stewardship and transparency support growth that lasts. And five: collaboration. The best outcomes come when people, processes and ideas work together.',
+            'Four: discipline and trust. Our CFO, Rangesh Rajaram, asks us to secure data and use it with discipline and trust. And five: data comes first. Kumar Vellore says the integrity of your data decides the quality of your AI outcomes.',
             'SERIOUS',
             'HAND_ON_HEART',
           ],
@@ -872,30 +868,30 @@ export const MODULES: ModuleDef[] = [
       { type: 'QUESTION', pool: 'founders' },
       {
         type: 'VIDEO',
-        title: 'Our Growth Story',
+        title: 'Growing with Our People',
         topic: 'growth-story',
         emotion: 'PROUD',
         avatar: 'founderRaj',
         segs: [
           [
-            'Many of our leaders have grown with this company. Muthukumar Ramalingam joined us in 2005 and has worked across development, delivery, operations, quality and marketing. Today he is our Chief Marketing Officer.',
+            'Many of our leaders have grown with this company for more than two decades.',
             'PROUD',
             'NOD',
           ],
           [
-            'His career shows something we care about deeply: we develop talent from within.',
+            'Manoj Chandra, Rangesh Rajaram and Selva Pandian have been with us since 2000, and Chandramohan Parlapalli and Muthukumar Ramalingam since 2001.',
+            'NEUTRAL',
+            'COUNT_THREE',
+          ],
+          [
+            'Muthu, our Chief Marketing Officer, has worked across software development, delivery, operations, quality and marketing. Careers like his show that we develop talent from within.',
             'HOPEFUL',
             'HAND_ON_HEART',
           ],
           [
-            'We also found new ways to deliver value. We launched our On Demand Services model, with Selva Pandian as a founding member, to give customers flexible, high-impact access to expert talent.',
+            'And Selva Pandian was one of the founding members of our On Demand Services model, a new way of giving customers flexible access to expert help.',
             'NEUTRAL',
             'POINT_RIGHT',
-          ],
-          [
-            'Our capabilities grew into cloud, Salesforce, data, analytics and AI. And we grew through partnership, bringing in Sybrant Technologies, the IT services firm built by V. Thiyagarajan, known to all of us as VT, with his three decades of experience building and scaling businesses.',
-            'HOPEFUL',
-            'OPEN_ARMS',
           ],
         ],
       },
@@ -907,27 +903,27 @@ export const MODULES: ModuleDef[] = [
         avatar: 'founderRamki',
         segs: [
           [
-            'Today, LevelShift is guided by a leadership team whose members mostly have more than twenty-five years of experience, from organizations such as Microsoft, Intel, IBM FileNET, EDS, Capgemini and BearingPoint.',
+            'Here is the team that guides LevelShift today. Many bring more than twenty-five years of experience, with organizations such as Microsoft, Intel, IBM FileNET, EDS, Capgemini and BearingPoint.',
             'PROUD',
             'SHOW_FRONT',
           ],
           [
-            'Kiran Babu Chandra, our Chief Executive Officer, sets our strategic direction and growth. Chandramohan Parlapalli, our Chief Operating Officer, turns strategy into execution at scale.',
+            'Kiran Babu Chandra, our Chief Executive Officer, guides our strategic direction and growth. Chandramohan Parlapalli, our Chief Operating Officer, turns strategy into execution at scale.',
             'NEUTRAL',
             'COUNT_TWO',
           ],
           [
-            'Manoj Chandra, our Chief Technology Officer, leads technology innovation, delivery strategy and talent development. Rangesh Rajaram, our Chief Financial Officer, leads finance, compliance, vendor management and administration.',
+            'Manoj Chandra, our Chief Technology Officer, leads technology innovation and delivery strategy. Rangesh Rajaram, our Chief Financial Officer, oversees finance, compliance, vendor management and administration.',
             'NEUTRAL',
             'COUNT_TWO',
           ],
           [
-            'Muthukumar Ramalingam leads marketing. Selva Pandian is Managing Director of our Cloud Practice, and Kumar Vellore is Managing Director of Data, Analytics and Enterprise Integration. And VT is Senior Vice President for Strategic Accounts.',
+            'Muthukumar Ramalingam, our Chief Marketing Officer, leads marketing. Selva Pandian is Managing Director of our Cloud Practice, and Kumar Vellore is Managing Director of Data, Analytics and Enterprise Intelligence.',
             'FRIENDLY',
             'POINT_RIGHT',
           ],
           [
-            "Many of them started out as engineers, consultants and entrepreneurs, and several grew their careers right here. You'll likely meet some of them soon.",
+            "Thiyagarajan Velayutham is our Senior Vice President for Strategic Accounts. And Raj and I are proud to be among the founders. You'll likely meet many of them soon.",
             'CHEERFUL',
             'NOD',
           ],
@@ -942,17 +938,17 @@ export const MODULES: ModuleDef[] = [
         avatar: 'founderRaj',
         segs: [
           [
-            'Looking ahead, our focus is cloud, data, AI and intelligent automation, delivered for customers around the world.',
+            'Looking ahead, we are building the Living Enterprise: helping customers become AI-native, with humans always in control.',
             'HOPEFUL',
             'POINT_RIGHT',
           ],
           [
-            "So what does all this mean for you? You're joining a company that values learning, ownership and collaboration.",
+            "So what does this mean for you? You're joining a company that puts people first and grows its leaders from within.",
             'FRIENDLY',
             'OPEN_ARMS',
           ],
           [
-            'Our ask of you is simple. Stay curious, keep improving, and build things that matter to people.',
+            'Our ask of you is simple. Keep learning, own your work, and use AI as an enabler, never as a replacement for good judgment.',
             'ENCOURAGING',
             'HAND_ON_HEART',
           ],
@@ -973,41 +969,41 @@ export const MODULES: ModuleDef[] = [
     questions: [
       {
         topic: 'founders',
-        text: 'What mindset do the founders say still shapes how LevelShift plans, runs and grows?',
-        options: [
-          "A builder's mindset",
-          'A wait-and-watch mindset',
-          'A cost-cutting mindset',
-          'A competitor-first mindset',
-        ],
-        hint: 'Both founders built and ran businesses across continents.',
+        text: 'Our CEO says "technology defines the era, but..." what defines the value?',
+        options: ['People', 'Technology on its own', 'Budgets', 'Market share'],
+        hint: 'It is the same thing our culture puts first.',
         explanation:
-          "It is a builder's mindset. Between them, the founders have built businesses in engineering, aerospace, finance and manufacturing, and they brought that habit of building here.",
+          'People define the value. Kiran Babu Chandra believes people drive transformation, which is why we invest in developing future leaders.',
       },
       {
         topic: 'founders',
-        text: 'According to what we believe, what drives transformation?',
-        options: ['People', 'Technology on its own', 'Budgets', 'Luck'],
-        hint: 'Technology succeeds when teams are empowered, mentored and trusted.',
+        text: 'How does our CTO, Manoj Chandra, say AI should be used?',
+        options: [
+          'As an enabler, not a replacement',
+          'As a full replacement for people',
+          'Only for marketing',
+          'Not at all',
+        ],
+        hint: 'He talks about understanding AI deeply and keeping control.',
         explanation:
-          'People drive transformation. The best technology still needs empowered, mentored and trusted teams to make it work.',
+          'AI is an enabler, not a replacement. The real advantage lies in understanding it deeply and keeping control.',
       },
       {
         topic: 'founders',
-        text: 'Which belief says AI and automation work best when they are designed with empathy?',
+        text: 'According to our COO, what is scale earned through?',
         options: [
-          'Human-centered innovation',
-          'Discipline and integrity',
-          'Speed over quality',
-          'Automation first, people later',
+          'Repeatable excellence',
+          'Working longer hours',
+          'Hiring as fast as possible',
+          'Luck',
         ],
-        hint: 'The belief puts humans at the center.',
+        hint: 'Disciplined processes, data-driven decisions and accountable ownership.',
         explanation:
-          'Human-centered innovation: AI and automation work best when they are designed with empathy for the people who use them.',
+          'Scale is earned through repeatable excellence: disciplined processes, data-driven decisions, accountable ownership, and teams confident in the process and the AI behind it.',
       },
       {
         topic: 'growth',
-        text: 'Which service model did LevelShift launch to give customers flexible access to expert talent?',
+        text: 'Selva Pandian was a founding member of which LevelShift service model?',
         options: [
           'On Demand Services',
           'Pay Per Ticket',
@@ -1016,237 +1012,198 @@ export const MODULES: ModuleDef[] = [
         ],
         hint: 'The name says customers get help exactly when they ask for it.',
         explanation:
-          'On Demand Services lets customers bring in expert talent when they need it, a bit like streaming a film instead of buying the whole cinema.',
+          'On Demand Services gives customers flexible access to expert help, a bit like streaming a film instead of buying the whole cinema.',
       },
       {
         topic: 'growth',
-        text: "What does Muthukumar Ramalingam's career, which began here in 2005, show about LevelShift?",
+        text: 'Most of our leaders joined in 2000 or 2001 and grew with the company. What does that show?',
         options: [
           'We develop talent from within',
           'We only hire senior leaders from outside',
           'People must stay in one role for their whole career',
           'Marketing is the only path to leadership',
         ],
-        hint: 'He worked across development, delivery, operations, quality and marketing before becoming CMO.',
+        hint: 'Muthu worked across development, delivery, operations, quality and marketing before becoming CMO.',
         explanation:
-          'He grew from development all the way to Chief Marketing Officer. It shows how LevelShift develops talent from within.',
+          'We develop talent from within. Many of our leaders have grown with LevelShift for more than two decades, often across several roles.',
       },
       {
         topic: 'growth',
-        text: 'Which IT services firm, built by V. Thiyagarajan (VT), became part of LevelShift?',
-        options: [
-          'Sybrant Technologies',
-          'Indoshell Precision Technologies',
-          'GlobalExim Corporation',
-          'BearingPoint',
-        ],
-        hint: 'Its name starts with the letter S.',
+        text: "Who is LevelShift's Chief Executive Officer?",
+        options: ['Kiran Babu Chandra', 'Manoj Chandra', 'Rangesh Rajaram', 'Kumar Vellore'],
+        hint: 'He believes technology defines the era, but people define the value.',
         explanation:
-          'Sybrant Technologies joined LevelShift, bringing VT and his three decades of experience in building and scaling businesses.',
+          'Kiran Babu Chandra is our CEO. Manoj Chandra is CTO, Rangesh Rajaram is CFO, and Kumar Vellore leads Data, Analytics and Enterprise Intelligence.',
       },
     ],
   },
 
   /* ---------------------------------------------------------------- */
-  /* 3. Company Culture (Data/Culture)                                 */
+  /* 3. Company Culture (Data/Culture, from levelshift.com)            */
   /* ---------------------------------------------------------------- */
   {
     slug: 'company-culture',
     title: 'Company Culture',
-    description: 'Our values, everyday behaviours and ways of working.',
+    description: 'Shifters, our values, the Living Enterprise mindset, and how we learn and grow.',
     avatar: 'culture',
     requiresAcknowledgment: false,
     steps: [
       {
         type: 'VIDEO',
-        title: 'Our Culture',
+        title: 'We Are Shifters',
         topic: 'culture-overview',
         emotion: 'CHEERFUL',
         segs: [
           ["Hi! I'm Zara, and I get the fun part: our culture.", 'CHEERFUL', 'WAVE'],
           [
-            'Our culture is built around innovation, customer success, collaboration, continuous learning and accountability.',
-            'FRIENDLY',
-            'SHOW_FRONT',
-          ],
-          [
-            'As an AI-first company, we encourage everyone to think beyond traditional technology delivery and focus on creating real, measurable business impact.',
+            "At LevelShift, we call ourselves Shifters: people who find opportunity where others don't.",
             'EXCITED',
             'OPEN_ARMS',
           ],
           [
-            "You'll notice a future-focused mindset, customer-centric decisions, teamwork across functions, ownership, experimentation, and a deep respect for diversity and inclusion. It's why we've been recognized as a Great Place to Work again and again.",
+            'We value people for their talent, their personality and competence, and their ability to learn and grow. Our whole culture rests on one belief: the belief in people and performance.',
             'PROUD',
-            'THUMBS_UP',
+            'SHOW_FRONT',
           ],
         ],
       },
       {
         type: 'VIDEO',
-        title: 'Our Five Values',
+        title: 'A Great Place to Work',
+        topic: 'culture-overview',
+        emotion: 'PROUD',
+        segs: [
+          [
+            'And it shows. LevelShift has been certified as a Great Place to Work six years in a row, from 2021 to 2027.',
+            'PROUD',
+            'APPLAUD',
+          ],
+          [
+            "Our HR leadership calls respect for people a core operating principle. It's how we treat customers, colleagues and everyone in between.",
+            'EMPATHETIC',
+            'HAND_ON_HEART',
+          ],
+        ],
+      },
+      {
+        type: 'VIDEO',
+        title: 'Our Values',
         topic: 'values',
         emotion: 'FRIENDLY',
         segs: [
           [
-            "We have five values: customer success, innovation, excellence, integrity and collaboration. Let's go through them.",
+            "Our values come straight from our leaders' own words. Here are the first four.",
             'FRIENDLY',
             'SHOW_FRONT',
           ],
           [
-            "Customer success comes first. Everything begins with understanding the customer's challenge. We put their needs first, focus on outcomes rather than just activities, and build long-term trust by communicating proactively and delivering on our commitments.",
-            'SERIOUS',
+            'People first: technology defines the era, but people define the value.',
+            'PROUD',
             'COUNT_ONE',
           ],
           [
-            'Innovation is encouraged at every level, from individual contributors to leadership. Challenge conventional thinking, explore new technologies, share new ideas openly, and experiment responsibly, especially with AI.',
-            'EXCITED',
+            'Repeatable excellence: disciplined processes, data-driven decisions and accountable ownership.',
+            'SERIOUS',
             'COUNT_TWO',
           ],
           [
-            'Excellence means quality in every deliverable, interaction and decision. Pay attention to detail, review your work thoroughly, seek feedback, and keep improving.',
-            'PROUD',
+            'Humans in control of AI: understand AI deeply, and use it as an enabler, never a replacement.',
+            'HOPEFUL',
             'COUNT_THREE',
+          ],
+          [
+            'And discipline and trust: protect data, and use it responsibly.',
+            'SERIOUS',
+            'HAND_ON_HEART',
           ],
         ],
       },
       {
         type: 'VIDEO',
-        title: 'Integrity and Collaboration',
+        title: 'Three More Values',
         topic: 'values',
-        emotion: 'SERIOUS',
+        emotion: 'EXCITED',
         segs: [
           [
-            'Integrity is non-negotiable. Trust is built through ethical behaviour and transparency. Be honest and respectful, communicate openly, and take responsibility for your actions.',
-            'SERIOUS',
-            'HAND_ON_HEART',
-          ],
-          [
-            'And when you make a mistake, admit it quickly. Everybody makes mistakes; hiding them is what causes real damage.',
-            'EMPATHETIC',
-            'NOD',
-          ],
-          [
-            'Finally, collaboration. Success comes when teams work together. Respect diverse perspectives, share knowledge actively, work across teams, and help your colleagues succeed.',
+            'Customer intent: stay attuned to what customers need, with the right context at the right time, so every interaction is relevant and meaningful.',
             'FRIENDLY',
-            'OPEN_ARMS',
+            'COUNT_ONE',
           ],
+          [
+            "An AI-first mindset: AI isn't just a shift in technology, it's a shift in mindset. Align teams early, and rethink how services are delivered.",
+            'EXCITED',
+            'COUNT_TWO',
+          ],
+          ['And data integrity: good AI starts with trustworthy data.', 'NEUTRAL', 'COUNT_THREE'],
         ],
       },
       { type: 'QUESTION', pool: 'values' },
       {
         type: 'VIDEO',
-        title: 'Everyday Behaviours',
-        topic: 'behaviours',
-        emotion: 'ENCOURAGING',
+        title: 'The Living Enterprise Mindset',
+        topic: 'living-enterprise',
+        emotion: 'HOPEFUL',
         segs: [
           [
-            'Values only count when they show up in daily behaviour. Here are seven behaviours we expect from everyone.',
-            'FRIENDLY',
+            'We help customers build a Living Enterprise, one that senses, learns and evolves. And we try to work the same way ourselves.',
+            'HOPEFUL',
             'OPEN_ARMS',
           ],
           [
-            'Be curious: ask questions, seek deeper understanding, and learn continuously.',
-            'HOPEFUL',
-            'COUNT_ONE',
-          ],
-          [
-            'Take ownership: own your commitments, be accountable for outcomes, and follow through.',
-            'SERIOUS',
-            'COUNT_TWO',
-          ],
-          [
-            'Communicate clearly: share information transparently, listen actively, and escalate risks early.',
-            'NEUTRAL',
+            'That means deciding and acting quickly, removing the friction that slows teams down, and trusting people to own their work.',
+            'ENCOURAGING',
             'COUNT_THREE',
           ],
           [
-            'And act with empathy: understand the perspectives of customers and colleagues, show respect in every interaction, and help build an inclusive environment.',
-            'EMPATHETIC',
+            "It means learning from every feedback loop. And it means humans stay in control: AI supports people, it doesn't replace their judgment.",
+            'SERIOUS',
             'HAND_ON_HEART',
           ],
         ],
       },
+      { type: 'QUESTION', pool: 'living-enterprise' },
       {
         type: 'VIDEO',
-        title: 'Think Big, Start Small',
-        topic: 'behaviours',
-        emotion: 'EXCITED',
-        segs: [
-          [
-            'Next, my favourite: think big, start small. Keep the long-term goal in sight, then execute in manageable steps, learning and adapting as you go.',
-            'EXCITED',
-            'THUMBS_UP',
-          ],
-          [
-            'Embrace change: adapt to new technologies, welcome feedback, and stay flexible and resilient.',
-            'ENCOURAGING',
-            'OPEN_ARMS',
-          ],
-          [
-            'And deliver results: prioritize impact, meet your commitments, and focus on measurable outcomes.',
-            'PROUD',
-            'NOD',
-          ],
-        ],
-      },
-      { type: 'QUESTION', pool: 'behaviours' },
-      {
-        type: 'VIDEO',
-        title: 'How We Work with Customers',
-        topic: 'ways-of-working',
-        emotion: 'FRIENDLY',
-        segs: [
-          [
-            'Now, how does work actually get done here? Every project begins with understanding business value, customer goals and expected outcomes.',
-            'FRIENDLY',
-            'THINK',
-          ],
-          [
-            'In practice that means requirement discovery sessions, collaborative planning, regular status updates, and outcome-based delivery.',
-            'NEUTRAL',
-            'COUNT_THREE',
-          ],
-          [
-            'Most teams also work with an agile mindset: incremental delivery, continuous feedback, sprint planning and reviews, and adapting quickly to change.',
-            'NEUTRAL',
-            'POINT_LEFT',
-          ],
-          [
-            'Why? Because it delivers value faster, keeps things transparent, and helps us manage risk better.',
-            'ENCOURAGING',
-            'THUMBS_UP',
-          ],
-        ],
-      },
-      {
-        type: 'VIDEO',
-        title: 'Learning, Collaboration and Innovation',
-        topic: 'ways-of-working',
+        title: 'Learning and Growth',
+        topic: 'growth',
         emotion: 'HOPEFUL',
         segs: [
           [
-            'We never stop learning. You are encouraged to build expertise in AI, Microsoft technologies, the Salesforce ecosystem, cloud platforms, data engineering and business applications.',
+            'We grow people from within. Most of our leaders joined in 2000 or 2001 and grew with the company, often working across several roles.',
+            'PROUD',
+            'NOD',
+          ],
+          [
+            'Certifications matter here. We have more than five hundred certified experts across Salesforce, Microsoft, Boomi and AI, including Microsoft Fabric and Perforce Delphix specialists.',
             'HOPEFUL',
             'SHOW_FRONT',
           ],
           [
-            'You can learn through certifications, internal training programs, knowledge-sharing sessions, and of course hands-on project experience.',
+            'And you can learn from our Centres of Excellence in AI, Integration and Test Data Management.',
             'FRIENDLY',
-            'NOD',
-          ],
-          [
-            'We put collaboration first. Business stakeholders, delivery teams, architects, engineers, consultants and customer success teams all work closely together, solving problems as one team.',
-            'FRIENDLY',
-            'OPEN_ARMS',
-          ],
-          [
-            'And we expect innovation in how we execute: use AI tools responsibly, automate repetitive work, keep improving processes, and propose ideas that help our efficiency and our customers.',
-            'EXCITED',
             'POINT_RIGHT',
           ],
         ],
       },
-      { type: 'QUESTION', pool: 'ways-of-working' },
+      {
+        type: 'VIDEO',
+        title: 'Stay Safe: Recruitment Fraud',
+        topic: 'growth',
+        emotion: 'SERIOUS',
+        segs: [
+          [
+            'One practical tip before I go. Watch out for fake job offers that use our name.',
+            'SERIOUS',
+            'THINK',
+          ],
+          [
+            'Our recruiters only use levelshift.com email addresses, and LevelShift never asks for fees during hiring. If something looks off, check with joinus at levelshift dot com.',
+            'SERIOUS',
+            'COUNT_TWO',
+          ],
+        ],
+      },
+      { type: 'QUESTION', pool: 'growth' },
       {
         type: 'VIDEO',
         title: 'Our Culture in One Line',
@@ -1259,15 +1216,11 @@ export const MODULES: ModuleDef[] = [
             'COUNT_ONE',
           ],
           [
-            'Learn continuously, innovate boldly, collaborate deeply, and deliver customer success.',
+            'People first, humans in control, and an enterprise built to evolve.',
             'PROUD',
             'HAND_ON_HEART',
           ],
-          [
-            "It brings people, technology and AI-driven innovation together to create meaningful impact. And now it's yours too!",
-            'CHEERFUL',
-            'THUMBS_UP',
-          ],
+          ["And now it's yours too!", 'CHEERFUL', 'THUMBS_UP'],
         ],
       },
       {
@@ -1284,110 +1237,91 @@ export const MODULES: ModuleDef[] = [
     questions: [
       {
         topic: 'values',
-        text: "Which of these is one of LevelShift's five core values?",
-        options: ['Integrity', 'Secrecy', 'Hierarchy', 'Speed at any cost'],
-        hint: 'It is about honesty and transparency.',
-        explanation:
-          'Integrity is one of our five values, alongside customer success, innovation, excellence and collaboration. Trust is built when people are honest, especially about mistakes.',
+        text: 'What do LevelShift people call themselves?',
+        options: ['Shifters', 'Levelers', 'Movers', 'Builders'],
+        hint: 'It comes from the second half of our company name.',
+        explanation: "We're Shifters: people who find opportunity where others don't.",
       },
       {
         topic: 'values',
-        text: 'According to our Customer Success value, what should we focus on?',
+        text: 'What belief does our culture rest on?',
         options: [
-          'Outcomes, not just activities',
-          'Billable hours above everything',
-          'What is most convenient internally',
-          'Using the newest technology available',
+          'The belief in people and performance',
+          'Seniority above everything',
+          'Technology before people',
+          'Speed at any cost',
         ],
-        hint: 'A busy week is not the same as a result the customer can feel.',
+        hint: 'It pairs who we are with what we deliver.',
         explanation:
-          'We focus on outcomes. A customer does not remember how many meetings we held; they remember whether their problem was solved.',
+          'Our culture rests on the belief in people and performance. We value talent, personality, competence and the ability to learn and grow.',
       },
       {
         topic: 'values',
-        text: 'You realize you made a mistake in a deliverable. What does our Integrity value expect?',
+        text: 'Which value says AI should be an enabler, never a replacement?',
         options: [
-          'Admit it quickly',
-          'Hope nobody notices',
-          'Blame the tools',
-          'Fix it quietly and say nothing',
+          'Humans in control of AI',
+          'Repeatable excellence',
+          'Customer intent',
+          'Data integrity',
         ],
-        hint: 'Integrity is about honesty and taking responsibility.',
+        hint: 'It is about who makes the final call.',
         explanation:
-          'Admit mistakes quickly. Owning a mistake early builds trust and gives the team time to fix it together.',
+          'Humans in control of AI: understand AI deeply and use it as an enabler, never a replacement.',
       },
       {
-        topic: 'behaviours',
-        text: "What does 'Think Big, Start Small' mean?",
-        options: [
-          'Aim for long-term goals and execute in manageable steps',
-          'Only take on small tasks',
-          'Plan for years before starting anything',
-          'Leave the big ideas to leadership',
-        ],
-        hint: 'It combines an ambitious goal with a practical first step.',
+        topic: 'values',
+        text: 'How many years in a row has LevelShift been certified as a Great Place to Work?',
+        options: ['Six (2021 to 2027)', 'One', 'Two', 'Ten'],
+        hint: 'Count from 2021 to 2027 on the certificates.',
         explanation:
-          'Think big, start small means keeping a long-term goal in sight while moving in manageable steps, like climbing a mountain one camp at a time.',
+          'Six years in a row, from 2021 to 2027. Our HR leadership calls respect for people a core operating principle.',
       },
       {
-        topic: 'behaviours',
-        text: 'You spot a risk that could delay your project. What does our culture expect you to do?',
+        topic: 'living-enterprise',
+        text: 'How do we describe a Living Enterprise?',
         options: [
-          'Escalate it early',
-          'Wait and see if it resolves itself',
-          'Mention it at the end of the project',
-          'Keep it to yourself to avoid worrying anyone',
+          'One that senses, learns and evolves',
+          'One that never changes',
+          'One where AI makes every decision',
+          'One that works without feedback',
         ],
-        hint: "It is part of the 'Communicate Clearly' behaviour.",
+        hint: 'Think of something alive.',
         explanation:
-          'Escalate risks early. A small problem raised on Monday is a quick fix; the same problem raised on Friday can be a missed deadline.',
+          'A Living Enterprise senses, learns and evolves, and we try to work that way ourselves.',
       },
       {
-        topic: 'behaviours',
-        text: 'Which behaviour is about adapting to new technologies and welcoming feedback?',
-        options: ['Embrace Change', 'Deliver Results', 'Take Ownership', 'Be Curious'],
-        hint: 'The behaviour also asks you to stay flexible and resilient.',
+        topic: 'living-enterprise',
+        text: 'In the Living Enterprise mindset, what is the role of AI?',
+        options: [
+          "It supports people; it doesn't replace their judgment",
+          'It replaces people entirely',
+          'It is never used',
+          'It makes every decision without review',
+        ],
+        hint: 'Humans stay in control.',
         explanation:
-          'Embrace Change: adapt to new technologies, welcome feedback, and stay flexible and resilient.',
+          "AI supports people; it doesn't replace their judgment. Humans stay in control.",
       },
       {
-        topic: 'ways-of-working',
-        text: 'How does every project at LevelShift begin?',
+        topic: 'growth',
+        text: 'A "recruiter" emails a friend from a personal email address and asks for a fee to process a LevelShift offer. What should they do?',
         options: [
-          'By understanding business value, customer goals and expected outcomes',
-          'By choosing the newest technology',
-          'By writing code straight away',
-          'By agreeing the final invoice',
+          'Treat it as fraud and check with joinus@levelshift.com',
+          'Pay the fee quickly so the offer is not lost',
+          'Reply with their bank details',
+          'Forward the fee to HR later',
         ],
-        hint: 'Our approach is customer-centric.',
+        hint: 'Our recruiters only use one email domain, and they never ask for fees.',
         explanation:
-          'Every project starts with understanding business value, customer goals and expected outcomes, through discovery sessions and collaborative planning.',
+          'It is fraud. LevelShift recruiters only use @levelshift.com addresses and never ask for fees. Check with joinus@levelshift.com.',
       },
       {
-        topic: 'ways-of-working',
-        text: 'Which of these is part of how most of our teams work?',
-        options: [
-          'Agile: incremental delivery and continuous feedback',
-          'One big delivery at the very end',
-          'No status updates until the project is finished',
-          'Working alone without reviews',
-        ],
-        hint: 'Think sprints, reviews and small increments.',
+        topic: 'growth',
+        text: 'Roughly how many certified experts does LevelShift have across Salesforce, Microsoft, Boomi and AI?',
+        options: ['More than 500', 'About 10', 'About 50', 'None'],
+        hint: 'It is in the hundreds.',
         explanation:
-          'Most teams use agile principles: incremental delivery, continuous feedback, sprint planning and reviews. It delivers value faster and keeps risks visible.',
-      },
-      {
-        topic: 'ways-of-working',
-        text: 'How are you encouraged to use AI tools at work?',
-        options: [
-          'Responsibly, to automate repetitive work and improve processes',
-          'Not at all',
-          'For everything, without checking the output',
-          'Only outside working hours',
-        ],
-        hint: 'The key word is "responsibly".',
-        explanation:
-          'Use AI tools responsibly to automate repetitive work and improve processes, so you can spend your time on what matters most.',
+          'More than five hundred. Certifications are a big part of how Shifters learn and grow.',
       },
     ],
   },
@@ -2187,12 +2121,13 @@ export const MODULES: ModuleDef[] = [
   },
 
   /* ---------------------------------------------------------------- */
-  /* 6. Business Units (draft structure; confirm with HR)              */
+  /* 6. Business Units (practices and services on levelshift.com)      */
   /* ---------------------------------------------------------------- */
   {
     slug: 'business-units',
     title: 'Business Units',
-    description: 'How LevelShift is organized, what each unit does, and how teams work together.',
+    description:
+      'How our delivery teams are organized, what each one does, and how teams work together.',
     avatar: 'business',
     requiresAcknowledgment: false,
     steps: [
@@ -2203,12 +2138,12 @@ export const MODULES: ModuleDef[] = [
         emotion: 'EXCITED',
         segs: [
           [
-            "Hey, I'm Kabir! Let me show you how LevelShift is organized, and where you fit in.",
+            "Hey, I'm Kabir! Let me show you how our delivery teams are organized, and where you fit in.",
             'EXCITED',
             'WAVE',
           ],
           [
-            'Our delivery work is organized into four business units: the Cloud Practice; Data, Analytics and Enterprise Integration; Microsoft Business Applications; and AI Transformation.',
+            'We will visit five areas: the Cloud Practice; Data, Analytics and Enterprise Intelligence; Microsoft Business Applications; Enterprise AI; and Business Process Services.',
             'FRIENDLY',
             'COUNT_THREE',
           ],
@@ -2226,17 +2161,17 @@ export const MODULES: ModuleDef[] = [
         emotion: 'FRIENDLY',
         segs: [
           [
-            'Our Cloud Practice lives in the Salesforce ecosystem. It is led by Selva Pandian, Managing Director of the Cloud Practice.',
+            'The Cloud Practice is led by Selva Pandian. It helps organizations use cloud, data, AI and analytics to solve complex business problems.',
             'FRIENDLY',
             'POINT_LEFT',
           ],
           [
-            'The team delivers CRM consulting and implementation, Agentforce, Data Cloud, Sales Cloud, Service Cloud and Field Service solutions.',
+            'Its work includes enterprise-scale Salesforce implementations, with Agentforce, Data Cloud and Field Service, building on our DemandBlue heritage as a Salesforce Summit Partner.',
             'NEUTRAL',
             'SHOW_FRONT',
           ],
           [
-            'It builds on our DemandBlue heritage, which made us a Summit-tier Salesforce partner.',
+            'Selva was a founding member of our On Demand Services model, and he believes technology works best when it is designed with people in mind.',
             'PROUD',
             'THUMBS_UP',
           ],
@@ -2244,22 +2179,22 @@ export const MODULES: ModuleDef[] = [
       },
       {
         type: 'VIDEO',
-        title: 'Data, Analytics & Enterprise Integration',
+        title: 'Data, Analytics & Enterprise Intelligence',
         topic: 'bu-data-analytics-ei',
         emotion: 'FRIENDLY',
         segs: [
           [
-            'Data, Analytics and Enterprise Integration is led by Kumar Vellore, who believes the future belongs to organizations that combine data, AI and human judgment.',
+            'Data, Analytics and Enterprise Intelligence is led by Kumar Vellore, who believes the future belongs to organizations that combine data, AI and human judgment.',
             'FRIENDLY',
             'POINT_RIGHT',
           ],
           [
-            'The team modernizes data platforms, builds business intelligence and analytics, and puts data governance and cloud data architectures in place.',
+            'The team modernizes data platforms with our LevelShift Data Modernization Framework, and connects systems through enterprise integration on Boomi, MuleSoft, Workato and Azure.',
             'NEUTRAL',
             'COUNT_TWO',
           ],
           [
-            'It also connects business systems through API management, application integration, workflow automation and hybrid cloud integration.',
+            'It also covers DevOps and Test Data Management with Perforce Delphix. We are a Microsoft Fabric Featured Partner and a strategic Databricks partner.',
             'NEUTRAL',
             'SHOW_FRONT',
           ],
@@ -2272,12 +2207,12 @@ export const MODULES: ModuleDef[] = [
         emotion: 'FRIENDLY',
         segs: [
           [
-            'Our Microsoft Business Applications team grew out of DemandDynamics, which brought us deep Microsoft expertise.',
+            'Our Microsoft Business Applications team grew out of DemandDynamics, which took us into Microsoft in 2020.',
             'FRIENDLY',
             'POINT_LEFT',
           ],
           [
-            'It works with Dynamics 365, Power Platform and Azure-based solutions to modernize CRM and ERP, optimize business processes, and integrate enterprise applications for our customers.',
+            'It works with Dynamics 365 for ERP and CRM, covering advisory, migration, custom development and support. We are a Microsoft Solutions Partner.',
             'NEUTRAL',
             'SHOW_FRONT',
           ],
@@ -2285,20 +2220,38 @@ export const MODULES: ModuleDef[] = [
       },
       {
         type: 'VIDEO',
-        title: 'AI Transformation',
+        title: 'Enterprise AI',
         topic: 'bu-ai-transformation',
         emotion: 'EXCITED',
         segs: [
-          ['And AI Transformation runs through everything we do.', 'EXCITED', 'OPEN_ARMS'],
+          ['And Enterprise AI runs through everything we do.', 'EXCITED', 'OPEN_ARMS'],
           [
-            'The team delivers AI strategy and readiness assessments, machine learning and natural language solutions, and AI governance, security and responsible AI.',
+            'The team helps customers move AI from pilot to production, across six disciplines: AI strategy, AI architecture, data governance for AI, data and platform engineering, AI development, and change management and adoption.',
             'NEUTRAL',
             'COUNT_THREE',
           ],
           [
-            'Its goal is the same as our mission: helping customers become AI-native enterprises, with AI embedded across their core business functions.',
+            'Its AI Center of Excellence offers more than one hundred and fifty pre-built agents, so customers can get value quickly.',
             'PROUD',
             'SHOW_FRONT',
+          ],
+        ],
+      },
+      {
+        type: 'VIDEO',
+        title: 'Business Process Services',
+        topic: 'bu-business-process-services',
+        emotion: 'FRIENDLY',
+        segs: [
+          [
+            'Business Process Services is led by Madhavi Parimelazhagan, our Director of KPO Operations.',
+            'FRIENDLY',
+            'POINT_RIGHT',
+          ],
+          [
+            'The team combines AI and machine learning workflows with human review, for medical record review, lease management, financial data processing, data management and contract management.',
+            'NEUTRAL',
+            'COUNT_THREE',
           ],
         ],
       },
@@ -2309,12 +2262,12 @@ export const MODULES: ModuleDef[] = [
         emotion: 'FRIENDLY',
         segs: [
           [
-            'No unit works alone. A typical customer project brings business stakeholders, consultants, architects, engineers and customer success teams together around one customer goal.',
+            'No unit works alone. A typical customer project brings consultants, architects, engineers and delivery teams together around one customer goal.',
             'FRIENDLY',
             'OPEN_ARMS',
           ],
           [
-            'Our business units are supported by Strategic Accounts, led by VT, and by company-wide functions: operations, technology, finance and compliance, and marketing, each led by a member of our leadership team.',
+            'Our units are supported by Strategic Accounts, led by Thiyagarajan Velayutham, and by company-wide functions: operations, technology, finance and compliance, and marketing, each led by a member of our leadership team.',
             'NEUTRAL',
             'COUNT_THREE',
           ],
@@ -2336,42 +2289,55 @@ export const MODULES: ModuleDef[] = [
     questions: [
       {
         topic: 'business-units',
-        text: 'Which practice focuses on the Salesforce ecosystem?',
+        text: 'Which team delivers enterprise-scale Salesforce implementations?',
         options: [
           'Cloud Practice',
-          'Data, Analytics & Enterprise Integration',
+          'Data, Analytics & Enterprise Intelligence',
           'Microsoft Business Applications',
-          'AI Transformation',
+          'Business Process Services',
         ],
-        hint: 'Salesforce is delivered from the cloud.',
+        hint: 'It is led by Selva Pandian.',
         explanation:
-          'The Cloud Practice is our Salesforce home, covering Agentforce, Data Cloud, Sales Cloud, Service Cloud and Field Service.',
+          'The Cloud Practice, led by Selva Pandian, delivers enterprise-scale Salesforce work with Agentforce, Data Cloud and Field Service.',
       },
       {
         topic: 'business-units',
-        text: 'Which team works with Dynamics 365 and Power Platform?',
+        text: 'Which team works with Dynamics 365?',
         options: [
           'Microsoft Business Applications',
           'Cloud Practice',
-          'Data, Analytics & Enterprise Integration',
-          'AI Transformation',
+          'Data, Analytics & Enterprise Intelligence',
+          'Enterprise AI',
         ],
-        hint: 'Both products are made by the same company, and the team is named after it.',
+        hint: 'The product is made by the company the team is named after.',
         explanation:
-          'Dynamics 365 and Power Platform are Microsoft products, so they sit with our Microsoft Business Applications team.',
+          'Dynamics 365 is a Microsoft product, so it sits with our Microsoft Business Applications team, which grew out of DemandDynamics.',
       },
       {
         topic: 'business-units',
-        text: 'Which unit connects business systems through APIs and workflow automation?',
+        text: 'Which team covers data modernization and enterprise integration?',
         options: [
-          'Data, Analytics & Enterprise Integration',
+          'Data, Analytics & Enterprise Intelligence',
           'Cloud Practice',
           'Microsoft Business Applications',
           'Strategic Accounts',
         ],
-        hint: 'Connecting systems is called integration.',
+        hint: 'It is led by Kumar Vellore.',
         explanation:
-          'Data, Analytics and Enterprise Integration modernizes data platforms and connects business systems through API management, application integration and workflow automation.',
+          'Data, Analytics and Enterprise Intelligence, led by Kumar Vellore, covers data modernization, enterprise integration, and DevOps and test data management.',
+      },
+      {
+        topic: 'business-units',
+        text: 'Which team handles medical record review and lease management?',
+        options: [
+          'Business Process Services',
+          'Enterprise AI',
+          'Cloud Practice',
+          'Microsoft Business Applications',
+        ],
+        hint: 'It combines AI workflows with human review, and is led by our Director of KPO Operations.',
+        explanation:
+          'Business Process Services, led by Madhavi Parimelazhagan, uses AI workflows with human review for medical records, leases, financial data, data management and contracts.',
       },
     ],
   },
@@ -2399,17 +2365,17 @@ export const MODULES: ModuleDef[] = [
             'OPEN_ARMS',
           ],
           [
-            'You learned who we are: a global AI transformation company, formed from PreludeSys, DemandBlue and DemandDynamics, helping enterprises become AI-native.',
+            'You learned who we are: your AI transformation partner, formed from PreludeSys, DemandBlue and DemandDynamics, helping enterprises become AI-native.',
             'NEUTRAL',
             'COUNT_ONE',
           ],
           [
-            "You met our founders and leaders, and heard about their builder's mindset. And you discovered our culture: five values, seven everyday behaviours, and how we work together.",
+            'You met our founders and leadership team, and heard what they believe. And you discovered our culture: Shifters, people first, and humans in control of AI.',
             'FRIENDLY',
             'COUNT_TWO',
           ],
           [
-            'You went through our policies and the compliance essentials, POSH, information security and data protection, and toured our business units.',
+            'You went through our policies and the compliance essentials, POSH, information security and data protection, and toured our delivery teams.',
             'SERIOUS',
             'COUNT_THREE',
           ],
@@ -2423,12 +2389,12 @@ export const MODULES: ModuleDef[] = [
         segs: [
           ['If you remember just three things, make them these.', 'FRIENDLY', 'COUNT_THREE'],
           [
-            'One: put customers first, and measure success by the outcomes they achieve.',
+            'One: people first. Technology defines the era, but people define the value.',
             'ENCOURAGING',
             'COUNT_ONE',
           ],
           [
-            'Two: stay curious. Learn continuously, innovate boldly and collaborate deeply.',
+            'Two: keep humans in control. Use AI as an enabler, never a replacement, and keep learning.',
             'HOPEFUL',
             'COUNT_TWO',
           ],
@@ -2483,14 +2449,14 @@ export const MODULES: ModuleDef[] = [
         topic: 'takeaways',
         text: 'Which line sums up our culture?',
         options: [
-          'Learn continuously, innovate boldly, collaborate deeply, and deliver customer success',
+          'People first, humans in control, and an enterprise built to evolve',
           'Move fast and break things',
           'Work hard, keep quiet',
-          'The customer is always wrong',
+          'Technology first, people later',
         ],
-        hint: 'It starts with learning and ends with the customer.',
+        hint: 'It starts with people.',
         explanation:
-          'Learn continuously, innovate boldly, collaborate deeply, and deliver customer success. That is our culture in one line.',
+          'People first, humans in control, and an enterprise built to evolve. That is our culture in one line.',
       },
     ],
   },

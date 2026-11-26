@@ -65,5 +65,6 @@ export async function assignQuestion(
   if (pool.length === 0) return null;
   const chosen = pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))] as string;
   await store.saveAssignment(userId, step.id, chosen);
-  return chosen;
+  // Two simultaneous requests may each pick one; whichever was stored first wins.
+  return (await store.findAssignment(userId, step.id)) ?? chosen;
 }

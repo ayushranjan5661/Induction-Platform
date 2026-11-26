@@ -627,9 +627,15 @@ export class ContentService {
 
     const current = entity ?? question;
     if (!current) throw new NotFoundException('Content not found');
-    const needsLegal = entity
-      ? entity.requiresAcknowledgment
-      : (question?.module.requiresAcknowledgment ?? false);
+    // Legal review applies to policy modules and to any module that asks for an acknowledgment,
+    // so switching the flag off cannot route acknowledgment content around Legal.
+    const moduleId = entity ? entity.id : question?.moduleId;
+    const hasAckStep =
+      !!moduleId &&
+      (await this.prisma.step.count({ where: { moduleId, type: 'ACKNOWLEDGMENT' } })) > 0;
+    const needsLegal =
+      hasAckStep ||
+      (entity ? entity.requiresAcknowledgment : (question?.module.requiresAcknowledgment ?? false));
 
     const decision = decideTransition({
       action,

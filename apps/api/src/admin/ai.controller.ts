@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  AiDirectOutputSchema,
+  AiDirectRequestSchema,
   AiDraftSaveSchema,
   ScriptSegmentsSchema,
   type AiDraftDto,
@@ -25,6 +27,7 @@ import {
   AiScriptRequestSchema,
   EMOTIONS,
   GESTURES,
+  type AiDirectRequest,
   type AiQuestionsRequest,
   type AiScriptRequest,
   type AiStatusDto,
@@ -60,6 +63,22 @@ Allowed emotions: ${EMOTIONS.join(', ')}.
 Allowed gestures: ${GESTURES.join(', ')}.
 Reply with JSON only, in this shape:
 {"segments":[{"text":"...","emotion":"FRIENDLY","gesture":"WAVE"}]}`;
+
+const DIRECT_SYSTEM = `You are the director of a friendly animated 2D presenter in a new-employee induction.
+You receive the presenter's script as numbered segments. For each segment, choose the facial emotion
+and the body gesture that best fit what is said, so the performance feels natural and varied.
+Rules:
+- Return exactly one entry per segment, in the same order. Never change the text.
+- Use NONE for most segments; a gesture should mark a moment, not every line.
+- Do not use the same gesture twice in a row.
+- WAVE only for greetings and goodbyes. COUNT_ONE/TWO/THREE only when listing that item number.
+- POINT_LEFT/POINT_RIGHT/SHOW_FRONT when introducing something; THINK for questions or reflection;
+  HAND_ON_HEART for values, care and welcome; CAUTION and SERIOUS for rules, risks and compliance;
+  APPLAUD, THUMBS_UP, EXCITED or CHEERFUL for achievements and praise; EMPATHETIC for sensitive topics.
+Allowed emotions: ${EMOTIONS.join(', ')}.
+Allowed gestures: ${GESTURES.join(', ')}.
+Reply with JSON only, in this shape:
+{"segments":[{"emotion":"FRIENDLY","gesture":"WAVE"}]}`;
 
 const QUESTIONS_SYSTEM = `You write multiple-choice questions that check understanding in a new-employee induction.
 Use ONLY facts from the source text. Do not invent facts.
@@ -147,6 +166,23 @@ export class AiService {
     return output.segments;
   }
 
+  /** Chooses an emotion and gesture per segment. The text comes back unchanged. */
+  async direct(request: AiDirectRequest): Promise<ScriptSegment[]> {
+    const numbered = request.segments.map((s, i) => `${i + 1}. ${s.text}`).join('\n');
+    const manner = request.manner ? `Presenter's manner: ${request.manner}\n\n` : '';
+    const output = await this.generate(
+      DIRECT_SYSTEM,
+      `${manner}Script (${request.segments.length} segments):\n${numbered}`,
+      AiDirectOutputSchema,
+    );
+    if (output.segments.length !== request.segments.length) {
+      throw new BadGatewayException(
+        `The AI returned direction for ${output.segments.length} of ${request.segments.length} segments. Nothing was changed.`,
+      );
+    }
+    return request.segments.map((segment, i) => ({ text: segment.text, ...output.segments[i]! }));
+  }
+
   async questions(request: AiQuestionsRequest) {
     const output = await this.generate(
       QUESTIONS_SYSTEM,
@@ -212,6 +248,15 @@ export class AiController {
     @Body(new ZodPipe(AiScriptRequestSchema)) body: AiScriptRequest,
   ): Promise<{ segments: ScriptSegment[] }> {
     return { segments: await this.ai.script(body) };
+  }
+
+  /** Returns the same segments with an AI-chosen emotion and gesture each. Saves nothing. */
+  @Post('direct')
+  @HttpCode(200)
+  async direct(
+    @Body(new ZodPipe(AiDirectRequestSchema)) body: AiDirectRequest,
+  ): Promise<{ segments: ScriptSegment[] }> {
+    return { segments: await this.ai.direct(body) };
   }
 
   /** Generates questions and saves them as DRAFT; they still need review. */

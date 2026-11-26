@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import type { Env } from './config/env';
 
 async function bootstrap(): Promise<void> {
@@ -11,8 +12,16 @@ async function bootstrap(): Promise<void> {
   const config = app.get<ConfigService<Env, true>>(ConfigService);
 
   app.setGlobalPrefix('api/v1');
+  app.useGlobalFilters(new PrismaExceptionFilter(app.getHttpAdapter()));
   app.use(cookieParser());
-  app.enableCors({ origin: config.get('APP_URL', { infer: true }), credentials: true });
+  // Two web apps call this API: staff and candidates.
+  app.enableCors({
+    origin: [
+      config.get('APP_URL', { infer: true }),
+      config.get('CANDIDATE_APP_URL', { infer: true }),
+    ],
+    credentials: true,
+  });
   app.enableShutdownHooks();
 
   const port = config.get('API_PORT', { infer: true });

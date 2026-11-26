@@ -71,7 +71,11 @@ export type Advance =
   | { kind: 'finished'; completedModuleId: string };
 
 /** The position after completing `current`. */
-export function advance(modules: readonly ModuleLike[], current: Position): Advance {
+export function advance(
+  modules: readonly ModuleLike[],
+  current: Position,
+  completedModuleIds: ReadonlySet<string> = new Set(),
+): Advance {
   const moduleIndex = modules.findIndex((m) => m.id === current.moduleId);
   const mod = modules[moduleIndex];
   if (!mod) throw new Error(`Unknown module ${current.moduleId}`);
@@ -92,6 +96,18 @@ export function advance(modules: readonly ModuleLike[], current: Position): Adva
       return {
         kind: 'step',
         position: { moduleId: nextModule.id, stepId: first.id },
+        completedModuleId: mod.id,
+      };
+    }
+  }
+  // Nothing left ahead. A module published (or re-published) behind the learner still has to be
+  // played before the induction counts as finished.
+  for (const earlier of modules.slice(0, moduleIndex)) {
+    const first = earlier.steps[0];
+    if (first && !completedModuleIds.has(earlier.id)) {
+      return {
+        kind: 'step',
+        position: { moduleId: earlier.id, stepId: first.id },
         completedModuleId: mod.id,
       };
     }

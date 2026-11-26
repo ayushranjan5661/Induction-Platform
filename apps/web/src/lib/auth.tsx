@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactElement, ReactNode } from 'react';
 import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { api, ApiError } from './api';
+import { LOGIN_PATH } from './portal';
 
 /** The signed-in user, or null when there is no session. */
 export function useMe() {
@@ -34,9 +35,10 @@ export function useLogout(): () => Promise<void> {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   return async () => {
+    // Each app has its own sign-in page: candidates in the candidate app, staff in the staff app.
     await api.post('/auth/logout').catch(() => undefined);
     queryClient.clear();
-    navigate('/login', { replace: true });
+    navigate(LOGIN_PATH, { replace: true });
   };
 }
 
@@ -65,7 +67,7 @@ export function RequireRole({
     return (
       <FullPageNote>Cannot reach the server. Check that it is running, then reload.</FullPageNote>
     );
-  if (!me.data) return <Navigate to="/login" replace />;
+  if (!me.data) return <Navigate to={LOGIN_PATH} replace />;
   // A default password has to be replaced before anything else opens.
   if (me.data.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (!roles.includes(me.data.role)) return <Navigate to={homeFor(me.data.role)} replace />;
@@ -81,5 +83,5 @@ export function HomeRedirect(): ReactElement {
       <FullPageNote>Cannot reach the server. Check that it is running, then reload.</FullPageNote>
     );
   if (me.data?.mustChangePassword) return <Navigate to="/change-password" replace />;
-  return <Navigate to={me.data ? homeFor(me.data.role) : '/login'} replace />;
+  return <Navigate to={me.data ? homeFor(me.data.role) : LOGIN_PATH} replace />;
 }

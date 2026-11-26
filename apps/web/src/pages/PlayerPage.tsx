@@ -23,6 +23,10 @@ import { useSound } from '../speech/settings';
 import { setMusic, sfx } from '../speech/sfx';
 import { usePresenter, type Caption } from '../speech/usePresenter';
 
+const REDUCED_MOTION =
+  typeof window !== 'undefined' &&
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+
 interface Cursor {
   modId: string;
   stepId: string | null;
@@ -64,13 +68,14 @@ export function PlayerPage(): ReactElement {
   const [ackOpen, setAckOpen] = useState(false);
   const [error, setError] = useState('');
   const presenter = usePresenter();
-  const { present, gesture, stop } = presenter;
+  const { present, gesture, act, stop } = presenter;
   const sound = useSound();
 
   /* Where to begin: the saved position, or a finished module being replayed. */
   const initialised = useRef(false);
   useEffect(() => {
-    if (!induction.data || initialised.current) return;
+    // Wait for a fresh copy: a cached one can hold an out-of-date saved step.
+    if (!induction.data || !induction.isFetchedAfterMount || initialised.current) return;
     initialised.current = true;
     const { modules, position } = induction.data;
     const wanted = replayModuleId ? modules.find((m) => m.id === replayModuleId) : undefined;
@@ -82,7 +87,15 @@ export function PlayerPage(): ReactElement {
     } else {
       navigate(position.status === 'COMPLETED' ? '/complete' : '/welcome', { replace: true });
     }
-  }, [induction.data, replayModuleId, navigate]);
+  }, [induction.data, induction.isFetchedAfterMount, replayModuleId, navigate]);
+
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const stepsQuery = useQuery({
     queryKey: ['steps', cursor?.modId],
@@ -127,13 +140,19 @@ export function PlayerPage(): ReactElement {
       try {
         const position = await api.post<PositionDto>('/progress', { stepId: now.step.id });
         if (position.status === 'COMPLETED' || !position.currentModuleId) {
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['induction'] }),
+            queryClient.invalidateQueries({ queryKey: ['summary'] }),
+          ]);
+          // The user may have left with "Save and exit" while this was saving.
+          if (!mounted.current) return;
           sfx.fanfare();
-          await queryClient.invalidateQueries({ queryKey: ['induction'] });
           navigate('/complete');
           return;
         }
-        if (position.currentModuleId !== now.cursor.modId)
-          void queryClient.invalidateQueries({ queryKey: ['induction'] });
+        // Keep the saved position fresh so "Resume" never starts from an old step.
+        void queryClient.invalidateQueries({ queryKey: ['induction'] });
+        if (!mounted.current) return;
         setCursor({ modId: position.currentModuleId, stepId: position.currentStepId });
       } catch (err) {
         completing.current = null;
@@ -191,9 +210,13 @@ export function PlayerPage(): ReactElement {
           sub: `With ${who.name}, ${who.title}`,
         });
         sfx.whoosh();
-        const ok = await narrator.wait(2300);
+        // The presenter starts walking in from the side just before the card lifts.
+        if (!(await narrator.wait(1700)) || !alive) return;
+        act('walkIn');
+        const ok = await narrator.wait(600);
         if (alive) setCard(null);
         if (!ok || !alive) return;
+        if (!(await narrator.wait(REDUCED_MOTION ? 0 : 1900)) || !alive) return;
         gesture(who.entryGesture);
         if (!(await narrator.wait(700)) || !alive) return;
       } else if (current.type === 'TRANSITION') {
@@ -211,8 +234,13 @@ export function PlayerPage(): ReactElement {
         }
         questionStep.current = current.id;
         setQuestion(q);
-        if (!q.resolved)
-          await present([{ text: q.text, emotion: 'FRIENDLY', gesture: 'THINK' }], who);
+        if (!q.resolved) {
+          const asked = await present(
+            [{ text: q.text, emotion: 'FRIENDLY', gesture: 'THINK' }],
+            who,
+          );
+          if (asked && alive) act('listen');
+        }
         return; // Waits for the learner.
       }
 
@@ -230,6 +258,10 @@ export function PlayerPage(): ReactElement {
         gesture(who.exitGesture);
         if (!(await narrator.wait(1300)) || !alive) return;
       }
+      if (last && !now.replay) {
+        act('walkOut');
+        if (!(await narrator.wait(REDUCED_MOTION ? 0 : 2400)) || !alive) return;
+      }
       await complete();
     })().catch((err: unknown) => {
       if (alive) setError(errorMessage(err));
@@ -239,7 +271,7 @@ export function PlayerPage(): ReactElement {
       alive = false;
       stop();
     };
-  }, [stepId, nonce, started, complete, present, gesture, stop]);
+  }, [stepId, nonce, started, complete, present, gesture, act, stop]);
 
   /* Background music follows the sound settings. */
   useEffect(() => {
@@ -272,13 +304,20 @@ export function PlayerPage(): ReactElement {
     setAnswering(true);
     setError('');
     stop();
+    // Stopping clears the narrator's pause, so the button must not keep showing "Play".
+    setPaused(false);
     try {
       const res = await api.post<AttemptResponseDto>(`/questions/${question.id}/attempts`, {
         optionId,
       });
       const correct = res.result === 'CORRECT';
-      if (correct) sfx.correct();
-      else sfx.wrong();
+      if (correct) {
+        sfx.correct();
+        act('jump', 'cheer');
+      } else {
+        sfx.wrong();
+        act('scratchHead');
+      }
       setPicked(optionId);
       setFeedback(res);
       setQuestion({
@@ -339,79 +378,112 @@ export function PlayerPage(): ReactElement {
   return (
     <Shell theme={theme}>
       {/* Top bar */}
-      <header className="relative z-20 flex items-center justify-between gap-4 px-5 py-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-widest text-white/70">
-            Module {mod.order} of {modules.length}
-            {replay && ' · Replay'}
-          </p>
-          <p className="truncate text-lg font-semibold">{mod.title}</p>
+      <header className="relative z-20 border-b border-white/[0.06] bg-ink-950/40 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4 px-6 pb-3 pt-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className="h-9 w-1 shrink-0 rounded-full"
+              style={{ backgroundColor: theme }}
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Module {mod.order} of {modules.length}
+                {replay && ' · Replay'}
+              </p>
+              <p className="truncate text-lg font-semibold leading-tight text-white">{mod.title}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <ol className="hidden items-center gap-1.5 md:flex" aria-label="Modules">
+              {modules.map((m) => (
+                <li
+                  key={m.id}
+                  title={m.title}
+                  aria-current={m.id === mod.id ? 'step' : undefined}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    m.id === mod.id
+                      ? 'w-7 bg-brand-cyan-light'
+                      : m.progress === 'COMPLETED'
+                        ? 'w-3 bg-emerald-400/90'
+                        : 'w-3 bg-white/15'
+                  }`}
+                />
+              ))}
+            </ol>
+            <Link
+              to="/welcome"
+              className="rounded-lg border border-white/10 bg-white/5 px-3.5 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+            >
+              Save and exit
+            </Link>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <ol className="hidden items-center gap-1.5 md:flex" aria-label="Modules">
-            {modules.map((m) => (
-              <li
-                key={m.id}
-                title={m.title}
-                className={`h-2 rounded-full transition-all ${
-                  m.id === mod.id
-                    ? 'w-8 bg-white'
-                    : m.progress === 'COMPLETED'
-                      ? 'w-2 bg-emerald-400'
-                      : 'w-2 bg-white/30'
-                }`}
-              />
-            ))}
-          </ol>
-          <Link
-            to="/welcome"
-            className="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20"
-          >
-            Save and exit
-          </Link>
+        <div className="h-[3px] w-full bg-white/[0.06]" aria-hidden>
+          <div
+            className="h-full bg-gradient-to-r from-brand-cyan to-brand-cyan-light transition-all duration-500"
+            style={{ width: `${((idx + 1) / steps.length) * 100}%` }}
+          />
         </div>
       </header>
-      <div
-        className="relative z-20 mx-5 h-1.5 overflow-hidden rounded-full bg-white/15"
-        aria-hidden
-      >
-        <div
-          className="h-full rounded-full bg-white transition-all duration-500"
-          style={{ width: `${((idx + 1) / steps.length) * 100}%` }}
-        />
-      </div>
 
       {/* Stage */}
-      <div className="relative z-10 min-h-0 flex-1">
-        <p className="pointer-events-none absolute inset-x-0 top-4 px-6 text-center text-xl font-semibold text-white/85 sm:text-2xl">
-          {step.title}
-        </p>
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+        <div className="pointer-events-none relative z-10 flex flex-col items-center px-6 pt-6 text-center">
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+            Step {idx + 1} of {steps.length}
+          </span>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            {step.title}
+          </h1>
+        </div>
 
         <motion.div
-          className="absolute inset-x-0 bottom-0 top-10 flex justify-center"
+          className="relative flex min-h-0 flex-1 justify-center"
           animate={{ x: questionOpen || ackOpen ? '-24%' : '0%' }}
           transition={{ type: 'spring', stiffness: 70, damping: 16 }}
         >
           <AnimatePresence mode="wait">
             <motion.div
               key={avatar.id}
-              className="relative h-full w-full max-w-3xl"
+              className="relative flex h-full w-full max-w-3xl flex-col items-center"
               initial={{ opacity: 0, y: 60 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
               transition={{ duration: 0.45 }}
             >
-              <Avatar
-                avatar={avatar}
-                emotion={view.emotion}
-                gesture={view.gesture}
-                speaking={view.speaking && !paused}
-                mouthCue={view.mouthCue}
-                className="h-full w-full drop-shadow-2xl"
-              />
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/45 px-4 py-1 text-sm backdrop-blur">
-                <span className="font-semibold">{avatar.name}</span>
-                <span className="text-white/70"> · {avatar.title}</span>
+              <div className="relative min-h-0 w-full flex-1 pt-2">
+                {/* Floor under the feet (the character's floor sits 30/770 of the box above its bottom). */}
+                <div
+                  className="pointer-events-none absolute bottom-[3.9%] left-1/2 h-14 w-[min(30rem,75%)] -translate-x-1/2 translate-y-1/2 rounded-[50%] opacity-45 blur-2xl"
+                  style={{ backgroundColor: theme }}
+                  aria-hidden
+                />
+                <div
+                  className="pointer-events-none absolute bottom-[3.9%] left-1/2 h-px w-[min(40rem,95%)] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                  aria-hidden
+                />
+                <Avatar
+                  avatar={avatar}
+                  emotion={view.emotion}
+                  gesture={view.gesture}
+                  action={view.action}
+                  speaking={view.speaking && !paused}
+                  mouthCue={view.mouthCue}
+                  word={view.word}
+                  className="h-full w-full drop-shadow-[0_20px_30px_rgba(0,0,0,0.45)]"
+                />
+              </div>
+              <div className="mb-3 mt-3 flex items-center gap-2 rounded-full border border-white/10 bg-ink-900/80 py-1 pl-1.5 pr-4 text-sm shadow-lg backdrop-blur">
+                <span
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
+                  style={{ backgroundColor: theme }}
+                  aria-hidden
+                >
+                  {avatar.name.charAt(0)}
+                </span>
+                <span className="font-semibold text-white">{avatar.name}</span>
+                <span className="text-slate-400">{avatar.title}</span>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -436,7 +508,7 @@ export function PlayerPage(): ReactElement {
       </div>
 
       {/* Captions */}
-      <div className="relative z-20 flex min-h-16 items-end justify-center px-5 pb-2">
+      <div className="relative z-20 flex min-h-16 items-end justify-center px-6 pb-3">
         {sound.captions && view.caption && !card && <Captions caption={view.caption} />}
       </div>
 
@@ -457,13 +529,13 @@ export function PlayerPage(): ReactElement {
       )}
 
       {/* Controls */}
-      <footer className="relative z-20 flex flex-wrap items-center justify-between gap-3 bg-black/35 px-5 py-2.5 backdrop-blur">
+      <footer className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] bg-ink-950/80 px-6 py-3 backdrop-blur">
         <div className="flex items-center gap-2">
-          <ControlButton onClick={togglePause} label={paused ? 'Play' : 'Pause'}>
-            {paused ? '▶' : '❚❚'}
+          <ControlButton onClick={togglePause} label={paused ? 'Play' : 'Pause'} primary>
+            <Icon name={paused ? 'play' : 'pause'} />
           </ControlButton>
           <ControlButton onClick={() => setNonce((n) => n + 1)} label="Replay this step">
-            ↺
+            <Icon name="replay" />
           </ControlButton>
           {replay && (
             <>
@@ -473,39 +545,43 @@ export function PlayerPage(): ReactElement {
                   idx > 0 && setCursor({ modId: mod.id, stepId: steps[idx - 1]?.id ?? null })
                 }
               >
-                ⏮
+                <Icon name="prev" />
               </ControlButton>
               <ControlButton label="Next step" onClick={() => void complete()}>
-                ⏭
+                <Icon name="next" />
               </ControlButton>
             </>
           )}
-          <span className="ml-2 text-sm text-white/75">
-            Step {idx + 1} of {steps.length}
-          </span>
         </div>
         <div className="flex items-center gap-2">
-          <ControlButton
-            onClick={() => sound.set({ muted: !sound.muted })}
-            label={sound.muted ? 'Unmute' : 'Mute'}
-          >
-            {sound.muted || sound.volume === 0 ? '🔇' : '🔊'}
-          </ControlButton>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={sound.muted ? 0 : sound.volume}
-            onChange={(e) => sound.set({ volume: Number(e.target.value), muted: false })}
-            aria-label="Volume"
-            className="w-24 accent-white"
-          />
+          <div className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 pl-1 pr-3">
+            <button
+              type="button"
+              onClick={() => sound.set({ muted: !sound.muted })}
+              aria-label={sound.muted ? 'Unmute' : 'Mute'}
+              title={sound.muted ? 'Unmute' : 'Mute'}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-200 hover:bg-white/10 hover:text-white"
+            >
+              <Icon name={sound.muted || sound.volume === 0 ? 'muted' : 'volume'} />
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={sound.muted ? 0 : sound.volume}
+              onChange={(e) => sound.set({ volume: Number(e.target.value), muted: false })}
+              aria-label="Volume"
+              className="h-1 w-24 cursor-pointer accent-brand-cyan-light"
+            />
+          </div>
           <ToggleChip on={sound.captions} onClick={() => sound.set({ captions: !sound.captions })}>
-            CC
+            <Icon name="cc" />
+            Captions
           </ToggleChip>
           <ToggleChip on={sound.music} onClick={() => sound.set({ music: !sound.music })}>
-            ♪ Music
+            <Icon name="music" />
+            Music
           </ToggleChip>
         </div>
       </footer>
@@ -580,22 +656,24 @@ export function PlayerPage(): ReactElement {
 function Shell({ theme, children }: { theme: string; children: React.ReactNode }): ReactElement {
   return (
     <div
-      className="relative flex h-screen flex-col overflow-hidden text-white transition-[background] duration-700"
+      className="relative flex h-screen flex-col overflow-hidden bg-ink-950 text-white transition-[background] duration-700"
       style={{
-        background: `radial-gradient(ellipse 80% 60% at 50% 105%, ${theme}dd 0%, ${theme}55 45%, transparent 75%), linear-gradient(165deg, #0b1228 0%, #131c3d 55%, #0b1228 100%)`,
+        // Neutral navy stage; the presenter's colour is only a soft spotlight, never a wash.
+        background: `radial-gradient(ellipse 45% 55% at 50% 42%, ${theme}26 0%, transparent 70%), radial-gradient(ellipse 70% 50% at 50% 0%, #1b2a48 0%, transparent 70%), linear-gradient(180deg, #0a1326 0%, #0b1428 60%, #070c1a 100%)`,
       }}
     >
+      {/* Faint dot grid for depth, fading out toward the edges. */}
       <div
-        className="stage-blob left-[8%] top-[18%] h-56 w-56"
-        style={{ backgroundColor: theme }}
+        className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_45%,black,transparent)]"
+        aria-hidden
       />
       <div
-        className="stage-blob right-[10%] top-[30%] h-72 w-72 [animation-delay:-6s]"
-        style={{ backgroundColor: theme }}
+        className="stage-blob left-[12%] top-[22%] h-64 w-64"
+        style={{ backgroundColor: '#009ada', opacity: 0.08 }}
       />
       <div
-        className="stage-blob left-[45%] top-[8%] h-40 w-40 [animation-delay:-11s]"
-        style={{ backgroundColor: '#ffffff' }}
+        className="stage-blob right-[12%] top-[34%] h-64 w-64 [animation-delay:-8s]"
+        style={{ backgroundColor: theme, opacity: 0.08 }}
       />
       {children}
     </div>
@@ -608,7 +686,7 @@ function Captions({ caption }: { caption: Caption }): ReactElement {
   return (
     <p
       aria-live="off"
-      className="max-w-3xl rounded-xl bg-black/55 px-4 py-2 text-center text-lg leading-snug backdrop-blur"
+      className="max-w-3xl rounded-xl border border-white/10 bg-ink-950/75 px-5 py-2.5 text-center text-lg leading-snug shadow-xl backdrop-blur"
     >
       {hasWord ? (
         <>
@@ -625,13 +703,88 @@ function Captions({ caption }: { caption: Caption }): ReactElement {
   );
 }
 
+type IconName = 'play' | 'pause' | 'replay' | 'prev' | 'next' | 'volume' | 'muted' | 'cc' | 'music';
+
+/** Small line icons so every control matches (emoji render differently on each OS). */
+function Icon({ name }: { name: IconName }): ReactElement {
+  const paths: Record<IconName, ReactElement> = {
+    play: <path d="M7 5v14l11-7z" fill="currentColor" stroke="none" />,
+    pause: (
+      <>
+        <rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none" />
+        <rect x="14" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none" />
+      </>
+    ),
+    replay: (
+      <>
+        <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+        <path d="M4 4v4.5h4.5" />
+      </>
+    ),
+    prev: (
+      <>
+        <path d="M6 5v14" />
+        <path d="M18 5 9 12l9 7z" fill="currentColor" />
+      </>
+    ),
+    next: (
+      <>
+        <path d="M18 5v14" />
+        <path d="M6 5l9 7-9 7z" fill="currentColor" />
+      </>
+    ),
+    volume: (
+      <>
+        <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" />
+        <path d="M15.5 9a4 4 0 0 1 0 6" />
+        <path d="M18 6.5a7.5 7.5 0 0 1 0 11" />
+      </>
+    ),
+    muted: (
+      <>
+        <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" />
+        <path d="m16 9.5 5 5M21 9.5l-5 5" />
+      </>
+    ),
+    cc: (
+      <>
+        <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+        <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6M17 10.2a2.2 2.2 0 1 0 0 3.6" />
+      </>
+    ),
+    music: (
+      <>
+        <path d="M9 18V6l10-2v12" />
+        <circle cx="6.5" cy="18" r="2.5" fill="currentColor" />
+        <circle cx="16.5" cy="16" r="2.5" fill="currentColor" />
+      </>
+    ),
+  };
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[18px] w-[18px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
 function ControlButton({
   label,
   onClick,
+  primary = false,
   children,
 }: {
   label: string;
   onClick: () => void;
+  primary?: boolean;
   children: React.ReactNode;
 }): ReactElement {
   return (
@@ -640,7 +793,11 @@ function ControlButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-9 min-w-9 items-center justify-center rounded-lg bg-white/10 px-2 text-sm hover:bg-white/25"
+      className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+        primary
+          ? 'bg-white text-ink-900 hover:bg-brand-cyan-light'
+          : 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white'
+      }`}
     >
       {children}
     </button>
@@ -661,7 +818,11 @@ function ToggleChip({
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`h-9 rounded-lg px-2.5 text-sm font-medium ${on ? 'bg-white text-slate-900' : 'bg-white/10 text-white hover:bg-white/25'}`}
+      className={`flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors ${
+        on
+          ? 'border-brand-cyan-light/40 bg-brand-cyan/20 text-brand-cyan-light'
+          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+      }`}
     >
       {children}
     </button>

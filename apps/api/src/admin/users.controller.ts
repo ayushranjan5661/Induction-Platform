@@ -220,7 +220,14 @@ export class UsersController {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id }, data: this.data(body) });
+      await tx.user.update({
+        where: { id },
+        // Candidates never keep a readable default password.
+        data: {
+          ...this.data(body),
+          ...(body.role === 'LEARNER' ? { defaultPasswordEnc: null } : {}),
+        },
+      });
       if (body.role === 'LEARNER') {
         await tx.enrollment.upsert({ where: { userId: id }, update: {}, create: { userId: id } });
       }

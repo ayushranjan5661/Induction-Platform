@@ -40,7 +40,7 @@ function messageFor(c: CredentialsDto): string {
   if (c.inviteUrl) lines.push(`Open this link to begin: ${c.inviteUrl}`, '');
   if (c.password) {
     lines.push(
-      c.inviteUrl ? 'Or sign in with:' : 'Sign in with:',
+      c.inviteUrl ? `Or sign in at ${c.signInUrl} with:` : `Sign in at ${c.signInUrl} with:`,
       `Email: ${c.email}`,
       `Password: ${c.password}`,
       'You will be asked to choose your own password the first time you sign in.',
@@ -64,6 +64,7 @@ export function CredentialsModal({
           Copy these now. For security they are shown only once; you can always issue new ones.
         </p>
         {credentials.employeeId && <CopyRow label="Employee id" value={credentials.employeeId} />}
+        <CopyRow label="Sign-in page" value={credentials.signInUrl} mono />
         <CopyRow label="Email" value={credentials.email} />
         {credentials.password && (
           <CopyRow

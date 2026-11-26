@@ -1,11 +1,11 @@
-/** Arriving by invitation link, and replacing a default password. */
-import type { LoginResultDto } from '@induction/shared';
+/** Replacing a default password. (Invitation links land on the candidate page.) */
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState, type FormEvent, type ReactElement } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useState, type FormEvent, type ReactElement } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, ErrorNote, Field, Input } from '../components/ui';
 import { api, errorMessage } from '../lib/api';
 import { FullPageNote, homeFor, useLogout, useMe } from '../lib/auth';
+import { LOGIN_PATH } from '../lib/portal';
 
 function Frame({ title, children }: { title: string; children: React.ReactNode }): ReactElement {
   return (
@@ -18,43 +18,6 @@ function Frame({ title, children }: { title: string; children: React.ReactNode }
         <div className="mt-4">{children}</div>
       </div>
     </div>
-  );
-}
-
-/** `/invite/:token`: signs the candidate in and takes them to their induction. */
-export function InvitePage(): ReactElement {
-  const { token = '' } = useParams();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [error, setError] = useState('');
-  const sent = useRef(false);
-
-  useEffect(() => {
-    if (sent.current) return;
-    sent.current = true;
-    api
-      .post<LoginResultDto>('/auth/invite', { token })
-      .then(async () => {
-        queryClient.clear();
-        await queryClient.invalidateQueries({ queryKey: ['me'] });
-        navigate('/welcome', { replace: true });
-      })
-      .catch((err: unknown) => setError(errorMessage(err)));
-  }, [token, navigate, queryClient]);
-
-  return (
-    <Frame title={error ? 'This link cannot be used' : 'Opening your induction…'}>
-      {error ? (
-        <div className="space-y-4">
-          <ErrorNote>{error}</ErrorNote>
-          <Link to="/login" className="inline-block text-sm text-brand-600 underline">
-            Sign in with your email and password instead
-          </Link>
-        </div>
-      ) : (
-        <p className="text-sm text-slate-600">One moment while we check your invitation.</p>
-      )}
-    </Frame>
   );
 }
 
@@ -71,7 +34,7 @@ export function ChangePasswordPage(): ReactElement {
   const [busy, setBusy] = useState(false);
 
   if (me.isLoading) return <FullPageNote>Loading…</FullPageNote>;
-  if (!me.data) return <Navigate to="/login" replace />;
+  if (!me.data) return <Navigate to={LOGIN_PATH} replace />;
   const user = me.data;
 
   const submit = async (event: FormEvent) => {

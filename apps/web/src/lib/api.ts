@@ -1,4 +1,6 @@
 /** Small fetch wrapper for the API. The session lives in an httpOnly cookie. */
+import { PORTAL } from './portal';
+import { tabReady, tabSessionId } from './tabSession';
 
 export class ApiError extends Error {
   constructor(
@@ -12,12 +14,20 @@ export class ApiError extends Error {
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  // A new tab first copies its session (see tabSession.ts).
+  await tabReady;
   let res: Response;
   try {
     res = await fetch(`/api/v1${path}`, {
       method,
       credentials: 'include',
-      headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
+      // The API keeps a separate session per app; this says which one is asking.
+      headers: {
+        'x-portal': PORTAL,
+        // ...and which tab, so each tab can be signed in as a different person.
+        'x-session': tabSessionId(),
+        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {

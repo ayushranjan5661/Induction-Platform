@@ -164,7 +164,13 @@ export class CandidatesController {
   ): Promise<{ ok: true }> {
     await this.candidate(id);
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id }, data: { isActive: body.isActive } }),
+      this.prisma.user.update({
+        where: { id },
+        // Blocking also voids the current link, so re-activating needs a fresh invite.
+        data: body.isActive
+          ? { isActive: true }
+          : { isActive: false, inviteTokenHash: null, inviteExpiresAt: null },
+      }),
       this.prisma.auditLog.create({
         data: {
           actorId: actor.id,

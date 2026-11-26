@@ -14,6 +14,12 @@ const HOST = {
   appearance: {
     skin: '#C68B5E',
     hair: '#2B1B12',
+    figure: 'feminine' as const,
+    build: 'regular' as const,
+    top: 'jacket' as const,
+    bottom: 'skirt' as const,
+    pants: '#1F2A44',
+    shoes: '#3B2B25',
     hairStyle: 'long' as const,
     outfit: '#2563EB',
     shirt: '#FFFFFF',

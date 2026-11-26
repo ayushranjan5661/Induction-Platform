@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run build -w @induction/shared && concurrently -n shared,api,web -c gray,green,cyan \"npm run dev -w @induction/shared\" \"npm run dev -w @induction/api\" \"npm run dev -w @induction/web\"",
+    "dev": "npm run build -w @induction/shared && concurrently -n shared,api,staff,candidate -c gray,green,cyan,magenta \"npm run dev -w @induction/shared\" \"npm run dev -w @induction/api\" \"npm run dev -w @induction/web\" \"npm run dev:candidate -w @induction/web\"",
     "build": "npm run build -w @induction/shared && npm run build -w @induction/api && npm run build -w @induction/web",
     "typecheck": "npm run build -w @induction/shared && npm run typecheck -w @induction/api && npm run typecheck -w @induction/web",
     "lint": "eslint .",

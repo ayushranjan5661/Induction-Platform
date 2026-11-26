@@ -233,7 +233,7 @@ export class LearnerService {
       if (!ack) throw new ConflictException('Please confirm the acknowledgment to continue');
     }
 
-    const next = advance(state.modules, { moduleId: mod.id, stepId });
+    const next = advance(state.modules, { moduleId: mod.id, stepId }, state.completed);
     const now = new Date();
 
     await this.prisma.$transaction(async (tx) => {
@@ -309,7 +309,12 @@ export class LearnerService {
           })
         ).map((q) => q.id),
       saveAssignment: async (userId, stepId, questionId) => {
-        await this.prisma.userQuestion.create({ data: { userId, stepId, questionId } });
+        // Idempotent: a parallel request that already assigned a question keeps its choice.
+        await this.prisma.userQuestion.upsert({
+          where: { userId_stepId: { userId, stepId } },
+          update: {},
+          create: { userId, stepId, questionId },
+        });
       },
     };
   }
@@ -328,13 +333,27 @@ export class LearnerService {
     const { step } = this.requireCurrentStep(state, stepId);
     if (step.type !== 'QUESTION') throw new BadRequestException('This step has no question');
 
-    const questionId = await assignQuestion(this.assignmentStore, user.id, step);
+    let questionId = await assignQuestion(this.assignmentStore, user.id, step);
     if (!questionId) return null;
 
-    const question = await this.prisma.question.findUnique({
+    let question = await this.prisma.question.findUnique({
       where: { id: questionId },
       include: { options: { orderBy: { order: 'asc' } } },
     });
+    // The assigned question was edited back to draft before the learner answered it:
+    // never show unreviewed text, pick again from the published pool.
+    if (question && question.status !== 'PUBLISHED') {
+      const tried = await this.prisma.attempt.count({ where: { userId: user.id, questionId } });
+      if (tried === 0) {
+        await this.prisma.userQuestion.deleteMany({ where: { userId: user.id, stepId } });
+        questionId = await assignQuestion(this.assignmentStore, user.id, step);
+        if (!questionId) return null;
+        question = await this.prisma.question.findUnique({
+          where: { id: questionId },
+          include: { options: { orderBy: { order: 'asc' } } },
+        });
+      }
+    }
     if (!question) return null;
 
     const attempts = await this.prisma.attempt.findMany({
@@ -379,6 +398,9 @@ export class LearnerService {
       throw new BadRequestException('That option does not belong to this question');
 
     const previous = await this.prisma.attempt.findMany({ where: { userId: user.id, questionId } });
+    if (question.status !== 'PUBLISHED' && previous.length === 0) {
+      throw new ConflictException('This question has just been changed. Please reload the page.');
+    }
     if (previous.some((a) => a.optionId === optionId)) {
       throw new ConflictException('You have already tried that option');
     }

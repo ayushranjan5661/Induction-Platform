@@ -1,8 +1,10 @@
 /** Drives an avatar through a list of script segments: voice, face, gestures and captions. */
 import type { AvatarDto, Clip, Emotion, Gesture } from '@induction/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { GestureCue } from '../avatar/Avatar';
-import { narrator } from './narrator';
+import type { ActionCue, GestureCue, WordCue } from '../avatar/Avatar';
+import type { ClipName } from '../character/controller';
+import { estimateWordMs } from '../character/visemes';
+import { EMOTION_VOICE, narrator } from './narrator';
 
 export interface Caption {
   text: string;
@@ -17,8 +19,12 @@ export interface Caption {
 export interface PresenterView {
   emotion: Emotion;
   gesture: GestureCue | null;
+  /** Body actions and extra gestures by clip name (walk in, jump, listen…). */
+  action: ActionCue | null;
   speaking: boolean;
   mouthCue: number;
+  /** The word being spoken now, for lip-sync. */
+  word: WordCue | null;
   caption: Caption | null;
 }
 
@@ -28,6 +34,8 @@ export interface Presenter {
   present: (segments: readonly Clip[], avatar: AvatarDto) => Promise<boolean>;
   /** Plays a gesture without speaking. */
   gesture: (name: Gesture) => void;
+  /** Plays character clips by name, such as `walkIn`, or `jump` with `cheer`. */
+  act: (...names: ClipName[]) => void;
   setEmotion: (emotion: Emotion) => void;
   stop: () => void;
 }
@@ -36,8 +44,10 @@ export function usePresenter(initialEmotion: Emotion = 'FRIENDLY'): Presenter {
   const [view, setView] = useState<PresenterView>({
     emotion: initialEmotion,
     gesture: null,
+    action: null,
     speaking: false,
     mouthCue: 0,
+    word: null,
     caption: null,
   });
   const run = useRef(0);
@@ -46,13 +56,18 @@ export function usePresenter(initialEmotion: Emotion = 'FRIENDLY'): Presenter {
   const stop = useCallback(() => {
     run.current += 1;
     narrator.cancel();
-    setView((v) => ({ ...v, speaking: false, caption: null }));
+    setView((v) => ({ ...v, speaking: false, word: null, caption: null }));
   }, []);
 
   const gesture = useCallback((name: Gesture) => {
     if (name === 'NONE') return;
     nonce.current += 1;
     setView((v) => ({ ...v, gesture: { name, nonce: nonce.current } }));
+  }, []);
+
+  const act = useCallback((...names: ClipName[]) => {
+    nonce.current += 1;
+    setView((v) => ({ ...v, action: { names, nonce: nonce.current } }));
   }, []);
 
   const setEmotion = useCallback((emotion: Emotion) => setView((v) => ({ ...v, emotion })), []);
@@ -63,6 +78,7 @@ export function usePresenter(initialEmotion: Emotion = 'FRIENDLY'): Presenter {
       const id = run.current;
       for (const segment of segments) {
         if (run.current !== id) return false;
+        const rate = avatar.voice.rate * EMOTION_VOICE[segment.emotion].rate * narrator.pace;
         nonce.current += 1;
         const cue =
           segment.gesture === 'NONE' ? null : { name: segment.gesture, nonce: nonce.current };
@@ -84,19 +100,21 @@ export function usePresenter(initialEmotion: Emotion = 'FRIENDLY'): Presenter {
           },
           onWord: (wordFrom, wordTo) => {
             if (run.current !== id) return;
+            const text = segment.text.slice(wordFrom, wordTo);
             setView((v) => ({
               ...v,
               mouthCue: v.mouthCue + 1,
+              word: { text, nonce: v.mouthCue + 1, ms: estimateWordMs(text, rate) },
               caption: v.caption ? { ...v.caption, wordFrom, wordTo } : v.caption,
             }));
           },
         });
         if (!finished || run.current !== id) return false;
-        setView((v) => ({ ...v, speaking: false }));
+        setView((v) => ({ ...v, speaking: false, word: null }));
         if (!(await narrator.wait(280)) || run.current !== id) return false;
       }
       if (run.current !== id) return false;
-      setView((v) => ({ ...v, speaking: false, emotion: avatar.defaultEmotion }));
+      setView((v) => ({ ...v, speaking: false, word: null, emotion: avatar.defaultEmotion }));
       return true;
     },
     [],
@@ -105,7 +123,7 @@ export function usePresenter(initialEmotion: Emotion = 'FRIENDLY'): Presenter {
   useEffect(() => () => narrator.cancel(), []);
 
   return useMemo(
-    () => ({ view, present, gesture, setEmotion, stop }),
-    [view, present, gesture, setEmotion, stop],
+    () => ({ view, present, gesture, act, setEmotion, stop }),
+    [view, present, gesture, act, setEmotion, stop],
   );
 }

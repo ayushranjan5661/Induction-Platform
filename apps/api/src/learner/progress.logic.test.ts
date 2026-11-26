@@ -123,8 +123,16 @@ describe('advance', () => {
   });
 
   it('finishes the induction after the last step of the last module', () => {
-    expect(advance(modules, { moduleId: 'm3', stepId: 'e' })).toEqual({
+    expect(advance(modules, { moduleId: 'm3', stepId: 'e' }, new Set(['m1', 'm2']))).toEqual({
       kind: 'finished',
+      completedModuleId: 'm3',
+    });
+  });
+
+  it('returns to an earlier unfinished module instead of finishing', () => {
+    expect(advance(modules, { moduleId: 'm3', stepId: 'e' }, new Set(['m1']))).toEqual({
+      kind: 'step',
+      position: { moduleId: 'm2', stepId: 'c' },
       completedModuleId: 'm3',
     });
   });

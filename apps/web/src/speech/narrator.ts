@@ -10,7 +10,7 @@ import { effectiveVolume } from './settings';
 type VoiceProfile = AvatarDto['voice'];
 
 /** How each emotion colours the voice: multipliers on the avatar's pitch and rate. */
-const EMOTION_VOICE: Record<Emotion, { pitch: number; rate: number }> = {
+export const EMOTION_VOICE: Record<Emotion, { pitch: number; rate: number }> = {
   NEUTRAL: { pitch: 1, rate: 1 },
   FRIENDLY: { pitch: 1.04, rate: 1 },
   CHEERFUL: { pitch: 1.1, rate: 1.04 },
@@ -79,6 +79,11 @@ class Narrator {
   /** True when the browser has at least one voice to speak with. */
   get hasVoice(): boolean {
     return this.voices.length > 0 && this.speed === 1;
+  }
+
+  /** Playback speed multiplier (1 normally; higher in the dev fast-forward mode). */
+  get pace(): number {
+    return this.speed;
   }
 
   get isPaused(): boolean {
@@ -166,10 +171,12 @@ class Narrator {
       let started = false;
       let settled = false;
       let watchdog = 0;
+      let ceiling = 0;
       const finish = (result: 'ok' | 'cancelled' | 'failed') => {
         if (settled) return;
         settled = true;
         window.clearTimeout(watchdog);
+        window.clearTimeout(ceiling);
         if (this.current === u) this.current = null;
         resolve(token !== this.token ? 'cancelled' : result);
       };
@@ -182,11 +189,25 @@ class Narrator {
           finish('failed');
         }, 2500);
       };
-      u.onstart = () => {
-        started = true;
+      // Some browsers drop `onend` (long utterances, network voices, background tabs). Once speech
+      // has started, give up waiting after about twice its expected length so the step moves on.
+      const words = text.trim().split(/\s+/).length;
+      const ceilingMs = 3000 + (words / (2.5 * Math.max(0.1, rate))) * 1000 * 2;
+      const armCeiling = () => {
+        ceiling = window.setTimeout(() => {
+          if (token !== this.token) return finish('cancelled');
+          if (this.paused) return armCeiling();
+          finish('ok');
+        }, ceilingMs);
       };
-      u.onboundary = (event) => {
+      const markStarted = () => {
+        if (started) return;
         started = true;
+        armCeiling();
+      };
+      u.onstart = markStarted;
+      u.onboundary = (event) => {
+        markStarted();
         if (event.name && event.name !== 'word') return;
         const rest = text.slice(event.charIndex);
         const length = event.charLength || (rest.match(/^\S+/)?.[0].length ?? 1);

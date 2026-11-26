@@ -3,6 +3,7 @@ import {
   EMOTIONS,
   GESTURES,
   type AdminModuleDto,
+  type AiStatusDto,
   type AvatarDto,
   type BusinessUnitDto,
   type ContentStatus,
@@ -135,10 +136,46 @@ export function WorkflowButtons({
 export function SegmentsEditor({
   segments,
   onChange,
+  manner,
 }: {
   segments: ScriptSegment[];
   onChange: (next: ScriptSegment[]) => void;
+  /** The presenter's personality notes, passed to "Direct with AI". */
+  manner?: string;
 }): ReactElement {
+  const aiStatus = useQuery({
+    queryKey: ['admin', 'ai-status'],
+    queryFn: () => api.get<AiStatusDto>('/admin/ai/status'),
+    staleTime: 60_000,
+  });
+  const [directing, setDirecting] = useState(false);
+  const [directError, setDirectError] = useState('');
+  const spoken = segments.filter((s) => s.text.trim());
+
+  /** Asks the AI to choose an emotion and gesture for every segment that has text. */
+  const direct = async () => {
+    setDirecting(true);
+    setDirectError('');
+    try {
+      const out = await api.post<{ segments: ScriptSegment[] }>('/admin/ai/direct', {
+        segments: spoken.map((s) => ({ text: s.text })),
+        manner: manner?.trim() || undefined,
+      });
+      let next = 0;
+      onChange(
+        segments.map((s) => {
+          if (!s.text.trim()) return s;
+          const directed = out.segments[next++];
+          return directed ? { ...s, emotion: directed.emotion, gesture: directed.gesture } : s;
+        }),
+      );
+    } catch (err) {
+      setDirectError(errorMessage(err));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
   const patch = (index: number, change: Partial<ScriptSegment>) =>
     onChange(segments.map((s, i) => (i === index ? { ...s, ...change } : s)));
   const move = (index: number, by: number) => {
@@ -224,6 +261,18 @@ export function SegmentsEditor({
       >
         + Add segment
       </Button>
+      {aiStatus.data?.configured && (
+        <Button
+          small
+          className="ml-2"
+          disabled={directing || spoken.length === 0}
+          onClick={() => void direct()}
+          title="Let the AI choose an emotion and gesture for each segment. The words are not changed."
+        >
+          {directing ? 'Directing…' : '✨ Direct with AI'}
+        </Button>
+      )}
+      <ErrorNote>{directError}</ErrorNote>
     </div>
   );
 }
@@ -260,6 +309,7 @@ export function PresenterPreview({
           gesture={view.gesture}
           speaking={view.speaking}
           mouthCue={view.mouthCue}
+          word={view.word}
           className="h-full w-full"
         />
       </div>

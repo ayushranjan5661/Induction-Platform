@@ -11,6 +11,7 @@ import { z } from 'zod';
 export function toAvatarDto(avatar: Avatar): AvatarDto {
   const appearance = AvatarAppearanceSchema.safeParse(avatar.appearance);
   const gender: VoiceGender = avatar.voiceGender === 'male' ? 'male' : 'female';
+  const look = appearance.success ? appearance.data : AvatarAppearanceSchema.parse({});
   return {
     id: avatar.id,
     name: avatar.name,
@@ -21,7 +22,8 @@ export function toAvatarDto(avatar: Avatar): AvatarDto {
     entryGesture: avatar.entryGesture,
     exitGesture: avatar.exitGesture,
     energy: avatar.energy,
-    appearance: appearance.success ? appearance.data : AvatarAppearanceSchema.parse({}),
+    // Presenters saved before body shapes existed take the figure that matches their voice.
+    appearance: { ...look, figure: look.figure ?? (gender === 'male' ? 'masculine' : 'feminine') },
     voice: { gender, lang: avatar.voiceLang, pitch: avatar.voicePitch, rate: avatar.voiceRate },
   };
 }

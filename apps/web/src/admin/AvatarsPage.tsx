@@ -2,7 +2,10 @@
 import {
   EMOTIONS,
   GESTURES,
+  BOTTOMS,
+  BUILDS,
   HAIR_STYLES,
+  TOPS,
   type AvatarDto,
   type AvatarUpsertInput,
   type Emotion,
@@ -36,11 +39,16 @@ const BLANK: AvatarUpsertInput = {
   exitGesture: 'NOD',
   energy: 1,
   appearance: {
+    build: 'regular',
+    top: 'polo',
+    bottom: 'trousers',
+    shoes: '#3B2B25',
     skin: '#C68B5E',
     hair: '#2B1B12',
     hairStyle: 'short',
     outfit: '#2563EB',
     shirt: '#FFFFFF',
+    pants: '#2B3A67',
     glasses: false,
     beard: false,
     earrings: false,
@@ -261,20 +269,73 @@ function AvatarForm({
                 onChange={(hair) => look({ hair })}
               />
               <Colour
-                label="Jacket"
+                label="Top"
                 value={form.appearance.outfit}
                 onChange={(outfit) => look({ outfit })}
               />
               <Colour
-                label="Shirt"
+                label="Collar / inner shirt"
                 value={form.appearance.shirt}
                 onChange={(shirt) => look({ shirt })}
+              />
+              <Colour
+                label="Bottoms"
+                value={form.appearance.pants}
+                onChange={(pants) => look({ pants })}
+              />
+              <Colour
+                label="Shoes"
+                value={form.appearance.shoes}
+                onChange={(shoes) => look({ shoes })}
               />
               <Colour
                 label="Stage colour"
                 value={form.themeColor}
                 onChange={(themeColor) => setForm({ ...form, themeColor })}
               />
+              <Select
+                value={
+                  form.appearance.figure ?? (form.voiceGender === 'male' ? 'masculine' : 'feminine')
+                }
+                onChange={(e) => look({ figure: e.target.value as 'masculine' | 'feminine' })}
+                aria-label="Figure"
+              >
+                <option value="masculine">Masculine figure</option>
+                <option value="feminine">Feminine figure</option>
+              </Select>
+              <Select
+                value={form.appearance.build}
+                onChange={(e) => look({ build: e.target.value as (typeof BUILDS)[number] })}
+                aria-label="Build"
+              >
+                {BUILDS.map((b) => (
+                  <option key={b} value={b}>
+                    {pretty(b.toUpperCase())} build
+                  </option>
+                ))}
+              </Select>
+              <Select
+                value={form.appearance.top}
+                onChange={(e) => look({ top: e.target.value as (typeof TOPS)[number] })}
+                aria-label="Top"
+              >
+                {TOPS.map((t) => (
+                  <option key={t} value={t}>
+                    {pretty(t.toUpperCase())}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                value={form.appearance.bottom}
+                onChange={(e) => look({ bottom: e.target.value as (typeof BOTTOMS)[number] })}
+                aria-label="Bottoms"
+              >
+                {BOTTOMS.map((b) => (
+                  <option key={b} value={b}>
+                    {pretty(b.toUpperCase())}
+                  </option>
+                ))}
+              </Select>
               <Select
                 value={form.appearance.hairStyle}
                 onChange={(e) =>

@@ -23,6 +23,27 @@ Version 1.1 · 25 November 2026
 > - **New endpoints:** `/auth/invite`, `/auth/change-password`, `/hr/candidates` (list, create, `:id/invite`, `:id/reset-password`, `:id/active`), `/admin/users/:id/reset-password`.
 > - **Not built:** sending the invitation by email. HR copies the link or the ready-made message and sends it through their own channel.
 
+> **Changes from v1.3 (requested 25 Nov 2026, "2D AI-powered animated character"):**
+> - **Presenters are now fuller 2D animated characters**, still drawn in the browser with no outside service or artwork: shaded face and outfit, irises that follow a gaze, eyelids and lashes, breathing, a slight head turn toward where the presenter points or looks, and a brow lift and nod on stressed words (long words, numbers, exclamations).
+> - **Cartoon drawing style (default).** `appearance.style` is `cartoon` (TV-cartoon look: big head, thick ink outlines, flat colours with one hard shadow, big oval eyes, squash and stretch) or `classic` (the shaded look). The cartoon presenter is full-body (sweater, trousers in the new `appearance.pants` colour, shoes) and rigged like a cut-out puppet: round shoulder and elbow joints keep the sleeves attached at any angle, hands have a palm, thumb and fingers, the shoulders lift on raised arms and shrugs, and the upper body leans into each gesture and shifts its weight while idle (`apps/web/src/avatar/body.tsx`). Existing presenters become cartoon automatically; admins can switch on the Presenters page. The characters are original designs, not copies of any existing cartoon character.
+> - **Lip-sync from visemes.** Each spoken word is turned into a timed sequence of 14 mouth shapes (now `apps/web/src/character/visemes.ts`): lips close on M/B/P, teeth touch the lip on F/V, lips round on O/U/W and spread on E/S. If a browser voice gives no word timing, the mouth falls back to a generic talking rhythm.
+> - **"Direct with AI".** In the script editor (Content and AI assistant pages) an admin can ask Azure OpenAI to choose the emotion and gesture for every segment of an existing script (`POST /admin/ai/direct`). The words are never changed, nothing is saved until the admin saves the step, and the usual review workflow still applies. The button appears only when the AI assistant is configured.
+
+> **Changes from v1.4 (requested 25 Nov 2026, "Advanced 2D cartoon character animation system"):**
+> - **New character engine (`apps/web/src/character`)** replaces the old avatar drawing. Original designs only; no existing cartoon characters are copied. No new dependencies (no GSAP): own SVG rig and animation code.
+> - **Skeletal rig.** A flat `Pose` record (`pose.ts`) holds every animatable value. `rig/skeleton.ts` solves it into joints: pelvis, spine, neck, head; shoulder, elbow and wrist on each arm (forward kinematics, or two-bone IK to reach a point); hip, knee and ankle on each leg (IK to planted feet, so hips can sway and the body can crouch, jump and sit). Limbs are drawn as joint-circle hulls, inked in two passes, so joints never show gaps.
+> - **Hands** have a palm, a thumb and four fingers that curl separately (open, relaxed, fist, point, wave, thumbs up, counting 1 to 3, presenting) and show the palm or the back.
+> - **Face:** eyes with lids, lashes, pupils and gaze; brows; nose; a mouth shaped by smile, open, wide and round values, with teeth and tongue; jaw; blush, tears and sweat. Expressions: normal, talking, friendly, happy, cheerful, excited, laughing, proud, hopeful, encouraging, empathetic, sad, crying, serious, angry, surprised, confused.
+> - **Clothing as separate parts:** tops `polo`, `tee`, `sweater`, `shirt` (tucked, with belt) and `jacket` (with inner shirt and lapels); short or long sleeves with cuffs; bottoms `trousers`, `shorts` or `skirt`; socks and shoes. `appearance` gains `figure` (masculine or feminine, defaulting from the voice gender), `build` (slim, regular, broad), `top`, `bottom` and `shoes` colour; `style` is removed. Stored as JSON with defaults, so no migration.
+> - **Animation:** keyframe and procedural clips (`anim/clip.ts`) on three mixer layers (body, gesture, face) with crossfades and priorities (`anim/mixer.ts`). Body clips: idle, walking, running, walkIn, walkOut, jump, sit, stand. Gesture clips cover every stored gesture plus listen, laugh, cheer, scratchHead, greet and a talking beat.
+> - **Controller** (`controller.ts`): `play(name)`, `stop()`, `setExpression(name)`, `lookAt(target)`, `blink()`, `setSpeaking()`, `speakWord(text, ms)`. It adds breathing, blinking, glances, emphasis and viseme lip-sync with jaw movement, and skips big moves for viewers who prefer reduced motion.
+> - **Player:** the presenter walks in at the start of each module and out at its end, listens while the learner answers, jumps and cheers on a right answer and scratches their head on a wrong one.
+
+> **Changes from v1.5 (requested 26 Nov 2026, "separate candidate landing page"):**
+> - **Two sign-in pages.** `/candidate` is the candidate landing page (email and password); `/login` is for Admin, HR and Legal staff. `POST /auth/login` takes an optional `portal` (`candidate` or `staff`) and refuses accounts that belong to the other page. Signing out returns each person to their own page, and signed-out visitors to candidate pages are sent to `/candidate`.
+> - **Invitation links land on the candidate page.** `/invite/:token` greets the candidate by first name (`POST /auth/invite/check`, which signs nobody in) and starts the induction when they click "Start my induction" (`POST /auth/invite`). A link that has expired or been replaced shows the email-and-password form instead.
+> - **Sign-in details name the right page.** `CredentialsDto.signInUrl` is `/candidate` for candidates and `/login` for staff, and the ready-made message includes it.
+
 ---
 
 ## 0. Instructions for Claude
@@ -365,7 +386,9 @@ Notes:
 
 | Route | Screen |
 |---|---|
-| `/login` | Login |
+| `/login` | Staff sign-in (Admin, HR, Legal) |
+| `/candidate` | Candidate sign-in |
+| `/invite/:token` | Candidate invitation landing page |
 | `/` | Welcome: greeting by first name, module overview, start/resume button |
 | `/induction` | Player |
 | `/complete` | Completion: summary, key takeaways, next steps, feedback form |

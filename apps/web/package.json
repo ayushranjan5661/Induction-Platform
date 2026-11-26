@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "dev:candidate": "vite --mode candidate",
+    "build": "tsc --noEmit -p tsconfig.json && vite build && vite build --mode candidate",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "preview": "vite preview",
+    "preview:candidate": "vite preview --mode candidate",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {

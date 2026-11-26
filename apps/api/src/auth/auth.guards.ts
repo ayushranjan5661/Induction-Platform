@@ -11,10 +11,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
 import {
   ALLOW_DEFAULT_PASSWORD,
+  CANDIDATE_SESSION_COOKIE,
   IS_PUBLIC,
   isRoleAllowed,
+  portalOf,
   ROLES,
   SESSION_COOKIE,
+  sessionCookieName,
   type AuthedRequest,
 } from './auth.types';
 
@@ -36,7 +39,9 @@ export class SessionGuard implements CanActivate {
 
     const req = ctx.switchToHttp().getRequest<AuthedRequest>();
     const cookies = req.cookies as Record<string, unknown> | undefined;
-    const token = cookies?.[SESSION_COOKIE];
+    const portal = portalOf(req);
+    const base = portal === 'candidate' ? CANDIDATE_SESSION_COOKIE : SESSION_COOKIE;
+    const token = cookies?.[sessionCookieName(base, req)];
     const session = typeof token === 'string' ? this.auth.verifySession(token) : null;
     if (!session) throw new UnauthorizedException('Please sign in');
     const userId = session.userId;
@@ -46,6 +51,9 @@ export class SessionGuard implements CanActivate {
       include: { businessUnit: true },
     });
     if (!user || !user.isActive) throw new UnauthorizedException('Please sign in');
+    // The candidate app only serves candidates and the staff app only staff.
+    if ((portal === 'candidate') !== (user.role === 'LEARNER'))
+      throw new UnauthorizedException('Please sign in');
 
     // A default password only opens the door far enough to replace it.
     const mustChangePassword = session.mustChangePassword && user.mustChangePassword;

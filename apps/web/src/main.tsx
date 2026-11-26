@@ -13,7 +13,9 @@ import { ReviewPage, UsersPage } from './admin/SetupPages';
 import { CandidatesPage } from './hr/CandidatesPage';
 import './index.css';
 import { HomeRedirect, RequireRole } from './lib/auth';
-import { ChangePasswordPage, InvitePage } from './pages/AccessPages';
+import { GoToApp, IS_CANDIDATE_APP } from './lib/portal';
+import { ChangePasswordPage } from './pages/AccessPages';
+import { CandidateLoginPage, InvitePage } from './pages/CandidatePage';
 import { CompletePage } from './pages/CompletePage';
 import { LoginPage } from './pages/LoginPage';
 import { PlayerPage } from './pages/PlayerPage';
@@ -38,50 +40,74 @@ const reportRoutes = (
   </>
 );
 
+/** Candidate app (its own port): sign-in, invitation links and the induction itself. */
+const candidateRoutes = (
+  <Routes>
+    <Route path="/" element={<HomeRedirect />} />
+    <Route path="/candidate" element={<CandidateLoginPage />} />
+    <Route path="/invite/:token" element={<InvitePage />} />
+    <Route path="/change-password" element={<ChangePasswordPage />} />
+    <Route path="/welcome" element={learner(<WelcomePage />)} />
+    <Route path="/induction" element={learner(<PlayerPage />)} />
+    <Route path="/complete" element={learner(<CompletePage />)} />
+    {/* Staff pages live in the staff app. */}
+    <Route path="/login" element={<GoToApp app="staff" />} />
+    <Route path="/admin/*" element={<GoToApp app="staff" />} />
+    <Route path="/hr/*" element={<GoToApp app="staff" />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
+
+/** Staff app: Admin, HR and Legal. */
+const staffRoutes = (
+  <Routes>
+    <Route path="/" element={<HomeRedirect />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/change-password" element={<ChangePasswordPage />} />
+
+    {/* HR panel */}
+    <Route
+      path="/hr"
+      element={
+        <RequireRole roles={['HR_ADMIN']}>
+          <AdminLayout />
+        </RequireRole>
+      }
+    >
+      {reportRoutes}
+    </Route>
+
+    {/* Admin panel (Legal reviewers see only the review screens) */}
+    <Route
+      path="/admin"
+      element={
+        <RequireRole roles={['ADMIN', 'LEGAL_REVIEWER']}>
+          <AdminLayout />
+        </RequireRole>
+      }
+    >
+      <Route element={<RequireRole roles={['ADMIN']} outlet />}>{reportRoutes}</Route>
+      <Route path="content" element={<ContentPage />} />
+      <Route path="review" element={<ReviewPage />} />
+      <Route path="avatars" element={admin(<AvatarsPage />)} />
+      <Route path="ai" element={admin(<AiPage />)} />
+      <Route path="users" element={admin(<UsersPage />)} />
+    </Route>
+
+    {/* Candidate pages and invitation links open in the candidate app. */}
+    <Route path="/candidate" element={<GoToApp app="candidate" />} />
+    <Route path="/invite/:token" element={<GoToApp app="candidate" />} />
+    <Route path="/welcome" element={<GoToApp app="candidate" />} />
+    <Route path="/induction" element={<GoToApp app="candidate" />} />
+    <Route path="/complete" element={<GoToApp app="candidate" />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
+
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/invite/:token" element={<InvitePage />} />
-          <Route path="/change-password" element={<ChangePasswordPage />} />
-          <Route path="/welcome" element={learner(<WelcomePage />)} />
-          <Route path="/induction" element={learner(<PlayerPage />)} />
-          <Route path="/complete" element={learner(<CompletePage />)} />
-
-          {/* HR panel */}
-          <Route
-            path="/hr"
-            element={
-              <RequireRole roles={['HR_ADMIN']}>
-                <AdminLayout />
-              </RequireRole>
-            }
-          >
-            {reportRoutes}
-          </Route>
-
-          {/* Admin panel (Legal reviewers see only the review screens) */}
-          <Route
-            path="/admin"
-            element={
-              <RequireRole roles={['ADMIN', 'LEGAL_REVIEWER']}>
-                <AdminLayout />
-              </RequireRole>
-            }
-          >
-            <Route element={<RequireRole roles={['ADMIN']} outlet />}>{reportRoutes}</Route>
-            <Route path="content" element={<ContentPage />} />
-            <Route path="review" element={<ReviewPage />} />
-            <Route path="avatars" element={admin(<AvatarsPage />)} />
-            <Route path="ai" element={admin(<AiPage />)} />
-            <Route path="users" element={admin(<UsersPage />)} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <BrowserRouter>{IS_CANDIDATE_APP ? candidateRoutes : staffRoutes}</BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
 );

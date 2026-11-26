@@ -7,8 +7,16 @@ export const EnvSchema = z.object({
     .string()
     .regex(/^postgres(ql)?:\/\//, 'DATABASE_URL must start with postgresql:// (Prisma format)'),
   API_PORT: z.coerce.number().int().positive().default(3000),
+  // The staff web app (Admin, HR, Legal).
   APP_URL: z.string().url().default('http://localhost:5173'),
-  AUTH_PROVIDER: z.enum(['dev']).default('dev'),
+  // The candidate web app, served on its own port: sign-in, invite links and the induction.
+  CANDIDATE_APP_URL: z.string().url().default('http://localhost:5174'),
+  // Optional: the two sign-in pages named in sign-in details.
+  // Default to APP_URL + /login and CANDIDATE_APP_URL + /candidate.
+  STAFF_LOGIN_URL: z.string().url('STAFF_LOGIN_URL must be a full URL').optional(),
+  CANDIDATE_LOGIN_URL: z.string().url('CANDIDATE_LOGIN_URL must be a full URL').optional(),
+  // 'dev' adds the one-click demo sign-in (never in production); 'password' switches it off.
+  AUTH_PROVIDER: z.enum(['dev', 'password']).default('dev'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   // Optional: encrypts staff default passwords shown to admins. Derived from JWT_SECRET when unset.
   CREDENTIALS_KEY: z.string().min(32, 'CREDENTIALS_KEY must be at least 32 characters').optional(),
@@ -49,6 +57,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     'SUPER_ADMIN_EMAIL',
     'SUPER_ADMIN_PASSWORD',
     'CREDENTIALS_KEY',
+    'STAFF_LOGIN_URL',
+    'CANDIDATE_LOGIN_URL',
+    'CANDIDATE_APP_URL',
   ]) {
     const value = input[key];
     input[key] = typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;
