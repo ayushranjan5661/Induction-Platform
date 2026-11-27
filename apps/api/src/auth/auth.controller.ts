@@ -5,6 +5,8 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Post,
   Req,
   Res,
@@ -42,6 +44,7 @@ import {
   sessionCookieName,
   type AuthUser,
 } from './auth.types';
+import { LoginThrottle } from './login-throttle';
 import { hashPassword, verifyPassword } from './password';
 
 /** Most per-tab session cookies a browser keeps (both apps together); the oldest go first. */
@@ -56,6 +59,8 @@ const DEV_NOTES: Record<Role, string> = {
 
 @Controller('auth')
 export class AuthController {
+  private readonly throttle = new LoginThrottle();
+
   constructor(
     private readonly auth: AuthService,
     private readonly prisma: PrismaService,
@@ -129,13 +134,24 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<LoginResultDto> {
+    const address = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    const wait = this.throttle.retryAfter(body.email, address);
+    if (wait > 0) {
+      res.setHeader('Retry-After', String(wait));
+      throw new HttpException(
+        `Too many sign-in attempts. Please try again in ${Math.ceil(wait / 60)} minute(s).`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     const user = await this.auth.authenticate(body.email, body.password);
     if (!user) {
+      this.throttle.fail(body.email, address);
       // Failed attempts on a real, active account are recorded against that account.
       const target = await this.prisma.user.findUnique({ where: { email: body.email } });
       if (target?.isActive) await this.audit(target.id, 'auth.sign-in-failed');
       throw new UnauthorizedException('The email or password is not right');
     }
+    this.throttle.succeed(body.email);
     // Each page signs in only its own people (checked after the password, so it reveals nothing).
     if (body.portal === 'candidate' && user.role !== 'LEARNER') {
       throw new UnauthorizedException(
@@ -222,20 +238,23 @@ export class AuthController {
   ): Promise<LoginResultDto> {
     const user = await this.prisma.user.findUnique({ where: { id: actor.id } });
     if (!user) throw new UnauthorizedException('Please sign in');
-    if (user.passwordHash && !verifyPassword(body.currentPassword, user.passwordHash)) {
+    if (user.passwordHash && !(await verifyPassword(body.currentPassword, user.passwordHash))) {
       throw new BadRequestException('Your current password is not right');
     }
     if (body.newPassword === body.currentPassword) {
       throw new BadRequestException('Choose a password that is different from the current one');
     }
+    const passwordHash = await hashPassword(body.newPassword);
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: user.id },
         // The user's own password replaces the default; the readable default copy is wiped.
+        // Other sessions end; this tab gets a fresh one below.
         data: {
-          passwordHash: hashPassword(body.newPassword),
+          passwordHash,
           mustChangePassword: false,
           defaultPasswordEnc: null,
+          sessionsValidFrom: new Date(),
         },
       }),
       this.prisma.auditLog.create({

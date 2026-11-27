@@ -151,7 +151,7 @@ async function seedUsers(): Promise<string[]> {
   // Optional: give every seeded account this password. Without it the demo
   // accounts are reached through the dev sign-in buttons on the login page.
   const seedPassword = process.env.SEED_PASSWORD?.trim();
-  const passwordHash = seedPassword ? hashPassword(seedPassword) : null;
+  const passwordHash = seedPassword ? await hashPassword(seedPassword) : null;
 
   await prisma.user.create({
     data: {

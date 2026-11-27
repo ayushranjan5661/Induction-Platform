@@ -96,22 +96,25 @@ export class CandidatesController {
       throw new ConflictException('That employee id is already in use');
     }
     const guessed = nameFromEmail(body.email);
-    const user = await this.prisma.user.create({
-      data: {
-        email: body.email,
-        employeeId: body.employeeId,
-        firstName: body.firstName || guessed.firstName,
-        lastName: body.firstName ? body.lastName : body.lastName || guessed.lastName,
-        department: 'Not set',
-        location: 'Not set',
-        role: 'LEARNER',
-        joiningDate: new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`),
-        enrollment: { create: {} },
-      },
-    });
+    // Created together with the password and link, so a failure leaves no half-made candidate.
     return this.credentials.issue(
       actor,
-      user.id,
+      async (tx) =>
+        (
+          await tx.user.create({
+            data: {
+              email: body.email,
+              employeeId: body.employeeId,
+              firstName: body.firstName || guessed.firstName,
+              lastName: body.firstName ? body.lastName : body.lastName || guessed.lastName,
+              department: 'Not set',
+              location: 'Not set',
+              role: 'LEARNER',
+              joiningDate: new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`),
+              enrollment: { create: {} },
+            },
+          })
+        ).id,
       { password: true, invite: true },
       'candidate.create',
     );

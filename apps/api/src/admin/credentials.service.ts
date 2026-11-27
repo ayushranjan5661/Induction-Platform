@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import type { CredentialsDto } from '@induction/shared';
 import { AuthService } from '../auth/auth.service';
 import type { AuthUser } from '../auth/auth.types';
@@ -21,25 +22,33 @@ export class CredentialsService {
     private readonly box: SecretBox,
   ) {}
 
+  /**
+   * `target` is the user's id, or a function that creates the user inside the same transaction,
+   * so a new account never exists without its sign-in details.
+   */
   async issue(
     actor: AuthUser,
-    userId: string,
+    target: string | ((tx: Prisma.TransactionClient) => Promise<string>),
     what: { password: boolean; invite: boolean },
     action: string,
   ): Promise<CredentialsDto> {
     const password = what.password ? generatePassword() : null;
     const invite = what.invite ? newInviteToken() : null;
     const expires = invite ? inviteExpiry() : null;
+    const passwordHash = password ? await hashPassword(password) : null;
 
     const user = await this.prisma.$transaction(async (tx) => {
+      const userId = typeof target === 'string' ? target : await target(tx);
       const updated = await tx.user.update({
         where: { id: userId },
         data: {
-          ...(password
+          ...(password && passwordHash
             ? {
-                passwordHash: hashPassword(password),
+                passwordHash,
                 mustChangePassword: true,
                 defaultPasswordEnc: this.box.encrypt(password),
+                // A reset ends every session that used the old password.
+                sessionsValidFrom: new Date(),
               }
             : {}),
           ...(invite

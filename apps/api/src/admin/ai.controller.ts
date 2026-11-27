@@ -102,7 +102,15 @@ export class AiService {
     this.deployment = config.get('AZURE_OPENAI_DEPLOYMENT', { infer: true }) ?? '';
     this.client =
       endpoint && apiKey && apiVersion && this.deployment
-        ? new AzureOpenAI({ endpoint, apiKey, apiVersion, deployment: this.deployment })
+        ? new AzureOpenAI({
+            endpoint,
+            apiKey,
+            apiVersion,
+            deployment: this.deployment,
+            // The SDK default (10 minutes, 2 retries) would leave the admin's request hanging.
+            timeout: 60_000,
+            maxRetries: 1,
+          })
         : null;
   }
 

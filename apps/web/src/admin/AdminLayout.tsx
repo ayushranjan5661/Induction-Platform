@@ -1,7 +1,7 @@
 import type { Role } from '@induction/shared';
-import type { ReactElement } from 'react';
+import { Suspense, type ReactElement } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { ROLE_LABEL } from '../components/ui';
+import { Loading, ROLE_LABEL } from '../components/ui';
 import { useLogout, useMe } from '../lib/auth';
 
 interface NavItem {
@@ -161,7 +161,10 @@ export function AdminLayout(): ReactElement {
         </div>
       </aside>
       <main className="min-w-0 p-5 sm:p-8">
-        <Outlet />
+        {/* Pages load on demand (see main.tsx); keep the sidebar while one loads. */}
+        <Suspense fallback={<Loading />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

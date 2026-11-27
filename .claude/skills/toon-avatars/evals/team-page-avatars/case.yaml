@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: team-page-avatars
+expected_outcome: |
+  A spec JSON with four characters matching the descriptions is saved in the project (for example under public/avatars),
+  four animated SVGs and four PNGs are generated with the skill's scripts into the Next.js public folder, the contact
+  sheet was viewed to check the result, and the reply explains where the files are and how to regenerate them.

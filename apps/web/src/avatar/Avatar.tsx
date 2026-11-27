@@ -111,8 +111,13 @@ export function Avatar({
     controller.setSpeaking(speaking);
   }, [controller, speaking]);
 
+  // Each word is mouthed once. Resuming after a pause flips `speaking` back on but must not
+  // replay the last word with no sound.
+  const mouthed = useRef<number | null>(null);
   useEffect(() => {
-    if (word && speaking) controller.speakWord(word.text, word.ms);
+    if (!word || !speaking || mouthed.current === word.nonce) return;
+    mouthed.current = word.nonce;
+    controller.speakWord(word.text, word.ms);
   }, [controller, word, speaking]);
 
   // A ready-drawn character, driven by the same controller and poses.

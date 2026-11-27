@@ -1,0 +1,6 @@
+# Only needed for raster output (PNG/GIF/MP4/WebM/sprite sheets) and the contact sheet.
+# SVG generation itself uses the Python standard library only.
+playwright>=1.40
+pillow>=10.0
+# also install the browser once:  python -m playwright install chromium
+# and ffmpeg (system package) for GIF / MP4 / WebM

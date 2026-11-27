@@ -21,7 +21,11 @@ export default defineConfig(({ mode }) => {
         ),
       },
     },
-    build: { outDir: candidate ? 'dist-candidate' : 'dist' },
+    build: {
+      outDir: candidate ? 'dist-candidate' : 'dist',
+      // The largest chunk is the Excel writer (~500 kB), loaded only when someone exports.
+      chunkSizeWarningLimit: 550,
+    },
     server: {
       port: candidate ? 5174 : 5173,
       strictPort: true,

@@ -1,7 +1,7 @@
 /** HR: invite a candidate with an employee id and email, then share the link or the login. */
 import type { CandidateDto, CredentialsDto } from '@induction/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent, type ReactElement } from 'react';
+import { useRef, useState, type FormEvent, type ReactElement } from 'react';
 import { EmployeeDetail } from '../admin/EmployeesPage';
 import { CredentialsModal } from '../components/Credentials';
 import {
@@ -68,18 +68,23 @@ export function CandidatesPage(): ReactElement {
     if (await issue(() => api.post<CredentialsDto>('/hr/candidates', body))) setForm(BLANK);
   };
 
+  const [toggling, setToggling] = useState<string | null>(null);
   const setActive = async (candidate: CandidateDto) => {
+    if (toggling) return;
     if (
       candidate.isActive &&
       !window.confirm(`Block ${candidate.name}? Their link and password will stop working.`)
     )
       return;
     setError('');
+    setToggling(candidate.id);
     try {
       await api.put(`/hr/candidates/${candidate.id}/active`, { isActive: !candidate.isActive });
       await reload();
     } catch (err) {
       setError(errorMessage(err));
+    } finally {
+      setToggling(null);
     }
   };
 
@@ -105,11 +110,16 @@ export function CandidatesPage(): ReactElement {
   const [resetting, setResetting] = useState(false);
   const [viewError, setViewError] = useState('');
 
+  // Only the latest eye-button click may open the panel, so a slow earlier reply cannot show
+  // another candidate's details.
+  const wantedView = useRef<string | null>(null);
   const view = async (candidate: CandidateDto) => {
     setError('');
     setViewError('');
+    wantedView.current = candidate.id;
     try {
       const creds = await api.get<CredentialsDto>(`/hr/candidates/${candidate.id}/credentials`);
+      if (wantedView.current !== candidate.id) return;
       setViewing({ id: candidate.id, creds });
     } catch (err) {
       setError(errorMessage(err));
@@ -288,6 +298,7 @@ export function CandidatesPage(): ReactElement {
                   <Button
                     small
                     variant={c.isActive ? 'danger' : 'secondary'}
+                    disabled={busy || toggling !== null}
                     onClick={() => void setActive(c)}
                   >
                     {c.isActive ? 'Block' : 'Unblock'}

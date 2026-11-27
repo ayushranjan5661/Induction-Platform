@@ -1,0 +1,12 @@
+{"characters": [
+  {"name": "Shopkeeper", "skin_tone": "golden", "hair_style": "sidepart", "hair_color": "grey", "beard": true, "eye_shape": "sleepy",
+   "glasses": ["round", "gold"], "top": "sweater", "top_color": "burgundy", "bottom": "chinos", "bottom_color": "brown",
+   "shoe_color": "brown", "sole_color": "gum", "animation": "idle"},
+  {"name": "Courier", "skin_tone": "brown", "hair_style": "cap", "hair_color": "black", "hat_color": "red",
+   "top": "bomber", "top_color": "red", "top_options": {"rib": "black"}, "bottom": "cargo", "bottom_color": "charcoal", "shoe_color": "black"},
+  {"name": "Gardener", "skin_tone": "porcelain", "hair_style": "braids", "hair_color": "ginger", "accent": "mint", "freckles": true,
+   "top": "flannel", "top_color": "forest", "shirt_color": "cream", "bottom": "joggers", "bottom_color": "olive", "shoe_color": "green"},
+  {"name": "Student", "skin_tone": "deep", "hair_style": "afro", "hair_color": "black", "headphones": "yellow",
+   "top": "pullover", "top_color": "lavender", "bottom": "shorts", "bottom_color": "denim", "bottom_options": {"sock_accent": "lavender"},
+   "shoe_color": "white"}
+]}

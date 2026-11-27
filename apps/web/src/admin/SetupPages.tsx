@@ -9,7 +9,7 @@ import {
   type UserUpsertInput,
 } from '@induction/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type ReactElement } from 'react';
+import { useRef, useState, type ReactElement } from 'react';
 import {
   Button,
   Card,
@@ -233,11 +233,15 @@ export function UsersPage(): ReactElement {
   const [resetting, setResetting] = useState(false);
   const [viewError, setViewError] = useState('');
 
+  // Only the latest eye-button click may open the panel (a slow earlier reply is ignored).
+  const wantedView = useRef<string | null>(null);
   const view = async (user: AdminUserDto) => {
     setError('');
     setViewError('');
+    wantedView.current = user.id;
     try {
       const creds = await api.get<CredentialsDto>(`/admin/users/${user.id}/credentials`);
+      if (wantedView.current !== user.id) return;
       setViewing({ user, creds });
     } catch (err) {
       setError(errorMessage(err));
@@ -525,12 +529,15 @@ function UserForm({
   });
   const [name, setName] = useState(`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim());
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const save = async () => {
+    if (saving) return;
     setError('');
     // One name box: the first word is stored as the first name, the rest as the last name.
     const [firstName = '', ...rest] = name.trim().split(/\s+/);
     if (!firstName) return setError('Enter a name.');
     const body = { ...form, firstName, lastName: rest.join(' ') };
+    setSaving(true);
     try {
       if (user) {
         await api.put(`/admin/users/${user.id}`, body);
@@ -540,6 +547,8 @@ function UserForm({
       }
     } catch (err) {
       setError(errorMessage(err));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -588,8 +597,8 @@ function UserForm({
         <ErrorNote>{error}</ErrorNote>
         <div className="flex justify-end gap-2">
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => void save()}>
-            {user ? 'Save' : 'Create and show sign-in details'}
+          <Button variant="primary" disabled={saving} onClick={() => void save()}>
+            {saving ? 'Saving…' : user ? 'Save' : 'Create and show sign-in details'}
           </Button>
         </div>
       </div>

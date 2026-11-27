@@ -78,7 +78,12 @@ export function usePresenter(initialEmotion: Emotion = 'FRIENDLY'): Presenter {
       const id = run.current;
       for (const segment of segments) {
         if (run.current !== id) return false;
-        const rate = avatar.voice.rate * EMOTION_VOICE[segment.emotion].rate * narrator.pace;
+        // Same 0.5 to 2 clamp the narrator applies to the spoken rate, so the mouth keeps pace.
+        const spoken = Math.max(
+          0.5,
+          Math.min(2, avatar.voice.rate * EMOTION_VOICE[segment.emotion].rate),
+        );
+        const rate = spoken * narrator.pace;
         nonce.current += 1;
         const cue =
           segment.gesture === 'NONE' ? null : { name: segment.gesture, nonce: nonce.current };

@@ -40,7 +40,7 @@ export class SuperAdminService implements OnApplicationBootstrap {
       await this.prisma.user.create({
         data: {
           email,
-          passwordHash: hashPassword(password),
+          passwordHash: await hashPassword(password),
           firstName,
           lastName,
           department: 'Administration',
@@ -53,7 +53,7 @@ export class SuperAdminService implements OnApplicationBootstrap {
       return;
     }
 
-    const passwordChanged = !verifyPassword(password, existing.passwordHash);
+    const passwordChanged = !(await verifyPassword(password, existing.passwordHash));
     if (passwordChanged || existing.role !== 'ADMIN' || !existing.isActive) {
       await this.prisma.user.update({
         where: { id: existing.id },
@@ -62,9 +62,10 @@ export class SuperAdminService implements OnApplicationBootstrap {
           isActive: true,
           ...(passwordChanged
             ? {
-                passwordHash: hashPassword(password),
+                passwordHash: await hashPassword(password),
                 mustChangePassword: false,
                 defaultPasswordEnc: null,
+                sessionsValidFrom: new Date(),
               }
             : {}),
         },

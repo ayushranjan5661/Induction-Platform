@@ -264,14 +264,20 @@ function ModuleEditor({
   const [error, setError] = useState('');
   const presenter = avatars.find((a) => a.id === mod.avatarId);
 
+  // One action at a time: a double click on ↑/↓ would otherwise move a step twice.
+  const [acting, setActing] = useState(false);
   const act = async (work: () => Promise<unknown>, confirmText?: string) => {
+    if (acting) return;
     if (confirmText && !window.confirm(confirmText)) return;
     setError('');
+    setActing(true);
     try {
       await work();
       await refresh();
     } catch (err) {
       setError(errorMessage(err));
+    } finally {
+      setActing(false);
     }
   };
 
@@ -358,7 +364,7 @@ function ModuleEditor({
                   <Button
                     small
                     variant="ghost"
-                    disabled={index === 0}
+                    disabled={acting || index === 0}
                     aria-label="Move up"
                     onClick={() =>
                       void act(() => api.post(`/admin/steps/${s.id}/move`, { direction: 'up' }))
@@ -369,7 +375,7 @@ function ModuleEditor({
                   <Button
                     small
                     variant="ghost"
-                    disabled={index === mod.steps.length - 1}
+                    disabled={acting || index === mod.steps.length - 1}
                     aria-label="Move down"
                     onClick={() =>
                       void act(() => api.post(`/admin/steps/${s.id}/move`, { direction: 'down' }))

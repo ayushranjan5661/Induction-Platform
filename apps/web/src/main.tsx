@@ -1,26 +1,37 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StrictMode } from 'react';
+import { lazy, StrictMode, Suspense, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { AuditPage } from './admin/AuditPage';
 import { AdminLayout } from './admin/AdminLayout';
-import { AiPage } from './admin/AiPage';
-import { AvatarsPage } from './admin/AvatarsPage';
-import { ContentPage } from './admin/ContentPage';
-import { DashboardPage } from './admin/DashboardPage';
-import { EmployeesPage } from './admin/EmployeesPage';
-import { FeedbackPage } from './admin/InsightsPages';
-import { ReviewPage, UsersPage } from './admin/SetupPages';
-import { CandidatesPage } from './hr/CandidatesPage';
+import { Loading } from './components/ui';
 import './index.css';
 import { HomeRedirect, RequireRole } from './lib/auth';
 import { GoToApp, IS_CANDIDATE_APP } from './lib/portal';
 import { ChangePasswordPage } from './pages/AccessPages';
 import { CandidateLoginPage, InvitePage } from './pages/CandidatePage';
-import { CompletePage } from './pages/CompletePage';
 import { LoginPage } from './pages/LoginPage';
-import { PlayerPage } from './pages/PlayerPage';
-import { WelcomePage } from './pages/WelcomePage';
+
+/**
+ * Pages other than sign-in load on demand, so each app downloads only the screens
+ * a person actually opens (the presenter engine, the admin editors and the charts
+ * stay out of the first download).
+ */
+function page<K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) {
+  return lazy(() => load().then((m): { default: ComponentType } => ({ default: m[name] })));
+}
+const AuditPage = page(() => import('./admin/AuditPage'), 'AuditPage');
+const AiPage = page(() => import('./admin/AiPage'), 'AiPage');
+const AvatarsPage = page(() => import('./admin/AvatarsPage'), 'AvatarsPage');
+const ContentPage = page(() => import('./admin/ContentPage'), 'ContentPage');
+const DashboardPage = page(() => import('./admin/DashboardPage'), 'DashboardPage');
+const EmployeesPage = page(() => import('./admin/EmployeesPage'), 'EmployeesPage');
+const FeedbackPage = page(() => import('./admin/InsightsPages'), 'FeedbackPage');
+const ReviewPage = page(() => import('./admin/SetupPages'), 'ReviewPage');
+const UsersPage = page(() => import('./admin/SetupPages'), 'UsersPage');
+const CandidatesPage = page(() => import('./hr/CandidatesPage'), 'CandidatesPage');
+const CompletePage = page(() => import('./pages/CompletePage'), 'CompletePage');
+const PlayerPage = page(() => import('./pages/PlayerPage'), 'PlayerPage');
+const WelcomePage = page(() => import('./pages/WelcomePage'), 'WelcomePage');
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -109,7 +120,11 @@ const staffRoutes = (
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{IS_CANDIDATE_APP ? candidateRoutes : staffRoutes}</BrowserRouter>
+      <BrowserRouter>
+        <Suspense fallback={<Loading />}>
+          {IS_CANDIDATE_APP ? candidateRoutes : staffRoutes}
+        </Suspense>
+      </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
 );

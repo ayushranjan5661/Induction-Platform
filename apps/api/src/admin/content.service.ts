@@ -194,6 +194,17 @@ export class ContentService {
         'A published module cannot be deleted. Edit it first to return it to draft.',
       );
     }
+    // Deleting would also erase candidates' acknowledgments and quiz results for it.
+    const [acks, attempts] = await Promise.all([
+      this.prisma.acknowledgment.count({ where: { moduleId: id } }),
+      this.prisma.attempt.count({ where: { question: { moduleId: id } } }),
+    ]);
+    if (acks + attempts > 0) {
+      throw new ConflictException(
+        'Candidates have acknowledgments or quiz results for this module, so it cannot be deleted. ' +
+          'Leave it in draft to hide it from candidates.',
+      );
+    }
     await this.prisma.$transaction(async (tx) => {
       await tx.module.delete({ where: { id } });
       await this.audit(tx, actor, 'module.delete', 'module', id, { title: mod.title });
@@ -437,9 +448,12 @@ export class ContentService {
         'A published question cannot be deleted. Edit it first to return it to draft.',
       );
     }
+    // A question candidates have answered is archived instead, so their quiz results stay.
+    const answered = (await this.prisma.attempt.count({ where: { questionId: id } })) > 0;
     await this.prisma.$transaction(async (tx) => {
-      await tx.question.delete({ where: { id } });
-      await this.audit(tx, actor, 'question.delete', 'question', id);
+      if (answered) await tx.question.update({ where: { id }, data: { status: 'ARCHIVED' } });
+      else await tx.question.delete({ where: { id } });
+      await this.audit(tx, actor, 'question.delete', 'question', id, { archived: answered });
     });
     return { ok: true };
   }
@@ -656,10 +670,18 @@ export class ContentService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      if (type === 'module') {
-        await tx.module.update({ where: { id }, data: { status: decision.to } });
-      } else {
-        await tx.question.update({ where: { id }, data: { status: decision.to } });
+      // Only move the exact version that was checked above. If someone edited it (back to draft,
+      // new version) or another reviewer acted in the meantime, nothing matches and we stop, so
+      // an unreviewed version can never be approved or published by a stale click.
+      const unchanged = { id, status: current.status, version: current.version };
+      const { count } =
+        type === 'module'
+          ? await tx.module.updateMany({ where: unchanged, data: { status: decision.to } })
+          : await tx.question.updateMany({ where: unchanged, data: { status: decision.to } });
+      if (count !== 1) {
+        throw new ConflictException(
+          'This content changed while you were looking at it. Refresh and try again.',
+        );
       }
       await tx.contentReview.create({
         data: {

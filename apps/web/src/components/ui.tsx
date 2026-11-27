@@ -8,7 +8,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 const cx = (...parts: (string | false | null | undefined)[]): string =>
   parts.filter(Boolean).join(' ');
@@ -190,13 +190,20 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }): ReactElement {
+  // Once anything in the dialog has been edited, Escape asks before throwing the changes away.
+  const edited = useRef(false);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Escape') return;
+      if (edited.current && !window.confirm('Close without saving your changes?')) return;
+      onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+  const markEdited = () => {
+    edited.current = true;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 sm:p-8">
@@ -204,6 +211,8 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        onInput={markEdited}
+        onChange={markEdited}
         className={cx('w-full rounded-2xl bg-white p-6 shadow-xl', wide ? 'max-w-4xl' : 'max-w-xl')}
       >
         <div className="mb-4 flex items-center justify-between gap-4">

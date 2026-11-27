@@ -11,10 +11,20 @@ export interface Session {
   userId: string;
   /** The session began with a default password that still has to be replaced. */
   mustChangePassword: boolean;
+  /** When the token was issued (seconds since the epoch). */
+  issuedAt: number;
 }
 
 // Compared against when the email is unknown, so both cases take about as long.
 const DUMMY_HASH = hashPassword('not-a-real-password');
+
+/**
+ * A session token issued before the account's `sessionsValidFrom` (set on password change or
+ * reset) is no longer accepted. Token times are whole seconds, so compare in seconds.
+ */
+export function sessionRevoked(issuedAt: number, sessionsValidFrom: Date | null): boolean {
+  return sessionsValidFrom !== null && issuedAt < Math.floor(sessionsValidFrom.getTime() / 1000);
+}
 
 /**
  * Sign-in: email and password, or a candidate's invite link. Company SSO can
@@ -69,7 +79,7 @@ export class AuthService {
 
   async authenticate(email: string, password: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    const ok = verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
+    const ok = await verifyPassword(password, user?.passwordHash ?? (await DUMMY_HASH));
     return user && user.isActive && user.passwordHash && ok ? user : null;
   }
 
@@ -112,7 +122,11 @@ export class AuthService {
     try {
       const payload = jwt.verify(token, this.secret, { algorithms: ['HS256'] });
       if (typeof payload !== 'object' || typeof payload.sub !== 'string') return null;
-      return { userId: payload.sub, mustChangePassword: payload.mcp === true };
+      return {
+        userId: payload.sub,
+        mustChangePassword: payload.mcp === true,
+        issuedAt: typeof payload.iat === 'number' ? payload.iat : 0,
+      };
     } catch {
       return null;
     }

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: game-npc-sprite-sheets
+expected_outcome: |
+  Five visibly different characters are generated with --transparent; four use animation "idle" and one uses "full";
+  sprite sheet PNGs with their JSON metadata are rendered into the Godot project's art folder; the reply explains how to
+  set up AnimatedSprite2D (frame size, columns/rows, fps, loop).

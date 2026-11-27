@@ -56,6 +56,8 @@ class Narrator {
   private paused = false;
   private voices: SpeechSynthesisVoice[] = [];
   private failures = 0;
+  /** After repeated failures the voice is rested until then, then tried again. */
+  private synthOffUntil = 0;
   private lastCancel = 0;
   /** Held so the browser does not garbage-collect an utterance mid-speech. */
   private current: SpeechSynthesisUtterance | null = null;
@@ -250,6 +252,10 @@ class Narrator {
       if (token !== this.token) return false;
       const sentence = text.slice(start, end);
       cb.onSentence?.(start, end);
+      // Two failures in a row rest the voice for a while (silent timing instead), then it is
+      // tried again, so a passing problem (no click yet, a slow network voice) does not mute
+      // the rest of the induction.
+      if (this.failures >= 2 && performance.now() >= this.synthOffUntil) this.failures = 0;
       const useSynth = this.hasVoice && this.failures < 2 && synth() !== null;
       if (useSynth) {
         const result = await this.utter(sentence, start, voice, profile, pitch, rate, cb);
@@ -259,6 +265,7 @@ class Narrator {
           continue;
         }
         this.failures += 1;
+        if (this.failures >= 2) this.synthOffUntil = performance.now() + 20_000;
       }
       if (!(await this.timed(sentence, start, rate, cb))) return false;
     }

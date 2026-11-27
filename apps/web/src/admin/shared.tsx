@@ -186,7 +186,8 @@ export function SegmentsEditor({
   };
 
   return (
-    <div className="space-y-3">
+    // Locked while the AI directs, so its answer cannot overwrite edits made in the meantime.
+    <fieldset disabled={directing} className="min-w-0 space-y-3" aria-busy={directing}>
       {segments.map((segment, index) => (
         <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <Textarea
@@ -273,7 +274,7 @@ export function SegmentsEditor({
         </Button>
       )}
       <ErrorNote>{directError}</ErrorNote>
-    </div>
+    </fieldset>
   );
 }
 

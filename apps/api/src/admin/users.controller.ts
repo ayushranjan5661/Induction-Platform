@@ -106,29 +106,29 @@ export class UsersController {
       throw new ConflictException('Someone with that email already exists');
     }
     await this.assertEmployeeIdFree(body.employeeId);
-    const created = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          ...this.data(body),
-          ...(body.role === 'LEARNER' ? { enrollment: { create: {} } } : {}),
-        },
-      });
-      await tx.auditLog.create({
-        data: {
-          actorId: actor.id,
-          action: 'user.create',
-          entityType: 'user',
-          entityId: user.id,
-          details: { role: body.role },
-        },
-      });
-      return user;
-    });
     // Every new account gets a system-set default password; candidates also get an invite link.
+    // One transaction, so a failure leaves no account without sign-in details.
     return this.credentials.issue(
       actor,
-      created.id,
-      { password: true, invite: created.role === 'LEARNER' },
+      async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            ...this.data(body),
+            ...(body.role === 'LEARNER' ? { enrollment: { create: {} } } : {}),
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId: actor.id,
+            action: 'user.create',
+            entityType: 'user',
+            entityId: user.id,
+            details: { role: body.role },
+          },
+        });
+        return user.id;
+      },
+      { password: true, invite: body.role === 'LEARNER' },
       'user.issue-credentials',
     );
   }
@@ -285,6 +285,20 @@ export class UsersController {
 
     const result: CsvImportResultDto = { created: 0, skipped: [] };
     const seen = new Set<string>();
+    const toCreate: UserUpsertInput[] = [];
+    // One query for the emails that already exist, instead of one per row.
+    const emails = rows
+      .slice(1)
+      .map((row) => cell(row, 'email')?.trim().toLowerCase())
+      .filter((e): e is string => !!e);
+    const existing = new Set(
+      (
+        await this.prisma.user.findMany({
+          where: { email: { in: emails } },
+          select: { email: true },
+        })
+      ).map((u) => u.email),
+    );
 
     for (const [index, row] of rows.slice(1).entries()) {
       const line = index + 2;
@@ -312,29 +326,33 @@ export class UsersController {
         });
         continue;
       }
-      if (
-        seen.has(parsed.data.email) ||
-        (await this.prisma.user.findUnique({ where: { email: parsed.data.email } }))
-      ) {
+      if (seen.has(parsed.data.email) || existing.has(parsed.data.email)) {
         result.skipped.push({ line, reason: `${parsed.data.email} already exists` });
         continue;
       }
       seen.add(parsed.data.email);
-      await this.prisma.user.create({
-        data: { ...this.data(parsed.data), enrollment: { create: {} } },
-      });
-      result.created++;
+      toCreate.push(parsed.data);
     }
 
-    await this.prisma.auditLog.create({
-      data: {
-        actorId: actor.id,
-        action: 'user.import',
-        entityType: 'user',
-        entityId: 'csv',
-        details: { created: result.created, skipped: result.skipped.length },
+    // All rows or none, with the audit entry, so a failure part-way leaves nothing half-imported.
+    result.created = toCreate.length;
+    await this.prisma.$transaction(
+      async (tx) => {
+        for (const data of toCreate) {
+          await tx.user.create({ data: { ...this.data(data), enrollment: { create: {} } } });
+        }
+        await tx.auditLog.create({
+          data: {
+            actorId: actor.id,
+            action: 'user.import',
+            entityType: 'user',
+            entityId: 'csv',
+            details: { created: result.created, skipped: result.skipped.length },
+          },
+        });
       },
-    });
+      { timeout: 60_000 },
+    );
     return result;
   }
 }

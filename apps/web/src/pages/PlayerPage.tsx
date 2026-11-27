@@ -108,7 +108,20 @@ export function PlayerPage(): ReactElement {
   const steps = stepsQuery.data;
   const found = steps && cursor?.stepId ? steps.findIndex((s) => s.id === cursor.stepId) : 0;
   const idx = Math.max(0, found ?? 0);
-  const step = steps?.[idx];
+  // The saved step is not in the cached list (the module was republished meanwhile): fetch the
+  // steps again once rather than silently restarting the module from step 0.
+  const [refetchedFor, setRefetchedFor] = useState<string | null>(null);
+  const missingStepId = found === -1 && cursor?.stepId ? cursor.stepId : null;
+  const waitingForSteps =
+    missingStepId !== null && (refetchedFor !== missingStepId || stepsQuery.isFetching);
+  const { refetch: refetchSteps } = stepsQuery;
+  useEffect(() => {
+    if (missingStepId && refetchedFor !== missingStepId) {
+      setRefetchedFor(missingStepId);
+      void refetchSteps();
+    }
+  }, [missingStepId, refetchedFor, refetchSteps]);
+  const step = waitingForSteps ? undefined : steps?.[idx];
   const mod = induction.data?.modules.find((m) => m.id === cursor?.modId);
   const avatar: AvatarDto | undefined = step
     ? (induction.data?.avatars[step.avatarId] ?? mod?.avatar)
@@ -502,7 +515,7 @@ export function PlayerPage(): ReactElement {
             />
           )}
           {ackOpen && step.ackText && (
-            <AckPanel key="ack" text={step.ackText} onConfirm={() => void acknowledge()} />
+            <AckPanel key="ack" text={step.ackText} onConfirm={acknowledge} />
           )}
         </AnimatePresence>
       </div>
@@ -534,7 +547,11 @@ export function PlayerPage(): ReactElement {
           <ControlButton onClick={togglePause} label={paused ? 'Play' : 'Pause'} primary>
             <Icon name={paused ? 'play' : 'pause'} />
           </ControlButton>
-          <ControlButton onClick={() => setNonce((n) => n + 1)} label="Replay this step">
+          <ControlButton
+            // Not while an answer is saving: its result would land on the restarted step.
+            onClick={() => !answering && setNonce((n) => n + 1)}
+            label="Replay this step"
+          >
             <Icon name="replay" />
           </ControlButton>
           {replay && (
@@ -928,7 +945,13 @@ function QuestionPanel({
   );
 }
 
-function AckPanel({ text, onConfirm }: { text: string; onConfirm: () => void }): ReactElement {
+function AckPanel({
+  text,
+  onConfirm,
+}: {
+  text: string;
+  onConfirm: () => Promise<void>;
+}): ReactElement {
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
@@ -957,9 +980,9 @@ function AckPanel({ text, onConfirm }: { text: string; onConfirm: () => void }):
         type="button"
         disabled={!checked || busy}
         onClick={() => {
+          // Stays disabled until the request finishes, so a slow network cannot send it twice.
           setBusy(true);
-          onConfirm();
-          window.setTimeout(() => setBusy(false), 1500);
+          void onConfirm().finally(() => setBusy(false));
         }}
         className="mt-4 w-full rounded-xl bg-brand-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 disabled:bg-slate-300"
       >

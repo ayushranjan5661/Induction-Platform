@@ -8,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Role } from '@induction/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthService } from './auth.service';
+import { AuthService, sessionRevoked } from './auth.service';
 import {
   ALLOW_DEFAULT_PASSWORD,
   CANDIDATE_SESSION_COOKIE,
@@ -51,6 +51,9 @@ export class SessionGuard implements CanActivate {
       include: { businessUnit: true },
     });
     if (!user || !user.isActive) throw new UnauthorizedException('Please sign in');
+    // A password change or reset ends every session that began before it.
+    if (sessionRevoked(session.issuedAt, user.sessionsValidFrom))
+      throw new UnauthorizedException('Please sign in');
     // The candidate app only serves candidates and the staff app only staff.
     if ((portal === 'candidate') !== (user.role === 'LEARNER'))
       throw new UnauthorizedException('Please sign in');

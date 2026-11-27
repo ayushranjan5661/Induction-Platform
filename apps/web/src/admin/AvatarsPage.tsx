@@ -100,6 +100,7 @@ export function AvatarsPage(): ReactElement {
   const avatars = useAvatars();
   const refresh = useRefreshContent();
   const [editing, setEditing] = useState<AvatarDto | 'new' | null>(null);
+  const [live, setLive] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   if (avatars.isLoading) return <Loading />;
@@ -138,8 +139,17 @@ export function AvatarsPage(): ReactElement {
               style={{
                 background: `radial-gradient(ellipse at 50% 110%, ${avatar.themeColor} 0%, #131c3d 75%)`,
               }}
+              // Only the card under the pointer animates: a page of 8 to 20 live presenters each
+              // redrawing every frame would make the page sluggish.
+              onMouseEnter={() => setLive(avatar.id)}
+              onMouseLeave={() => setLive((id) => (id === avatar.id ? null : id))}
             >
-              <Avatar avatar={avatar} emotion={avatar.defaultEmotion} className="h-full w-full" />
+              <Avatar
+                avatar={avatar}
+                emotion={avatar.defaultEmotion}
+                className="h-full w-full"
+                still={live !== avatar.id}
+              />
             </div>
             <div className="p-4">
               <p className="font-semibold text-slate-900">{avatar.name}</p>

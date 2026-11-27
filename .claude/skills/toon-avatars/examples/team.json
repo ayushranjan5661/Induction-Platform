@@ -1,0 +1,22 @@
+{"characters": [
+  {"name": "Elena", "skin_tone": "peach", "hair_style": "long", "hair_color": "auburn", "eye_color": "green", "eye_shape": "open", "lashes": "long",
+   "brows": "arched", "nose": "small", "mouth": "lips", "lip_color": "lip-coral", "earrings": ["hoop", "gold"],
+   "top": "bomber", "top_color": "navy", "shirt_color": "cream", "top_options": {"rib": "navy", "stripe": "gold"},
+   "bottom": "chinos", "bottom_color": "khaki", "shoe_color": "white", "background": "coral"},
+  {"name": "Marcus", "skin_tone": "espresso", "hair_style": "buzz", "hair_color": "black", "beard": true, "eye_color": "dark-brown",
+   "brows": "bold", "nose": "wide", "mouth": "grin", "glasses": ["rect", "#1E1E22"],
+   "top": "denim", "top_color": "denim", "shirt_color": "white", "bottom": "chinos", "bottom_color": "charcoal",
+   "shoe_color": "brown", "sole_color": "gum", "background": "jade"},
+  {"name": "Mei", "skin_tone": "fair", "hair_style": "bob", "hair_color": "blue-black", "eye_color": "dark-brown", "eye_shape": "open",
+   "lashes": "long", "brows": "straight", "nose": "line", "mouth": "small",
+   "top": "sweater", "top_color": "mint", "top_options": {"stripes": "cream"}, "bottom": "skirt", "bottom_color": "navy",
+   "bottom_options": {"tights": "#2B2B33"}, "shoe_color": "black", "background": "violet"},
+  {"name": "Tomas", "skin_tone": "olive", "hair_style": "curlytop", "hair_color": "dark-brown", "eye_color": "hazel", "brows": "thick",
+   "nose": "round", "mouth": "smirk", "headphones": "sky",
+   "top": "zip", "top_color": "charcoal", "shirt_color": "mustard", "bottom": "jeans", "bottom_color": "dark-wash",
+   "shoe_color": "red", "background": "apricot"},
+  {"name": "Zainab", "skin_tone": "bronze", "hair_style": "hijab", "hijab_color": "burgundy", "eye_color": "brown", "eye_shape": "open",
+   "lashes": "long", "brows": "arched", "nose": "small", "mouth": "smile",
+   "top": "sweater", "top_color": "cream", "top_options": {"graphic": "star", "graphic_color": "burgundy"},
+   "bottom": "chinos", "bottom_color": "navy", "shoe_color": "white", "background": "cornflower"}
+]}

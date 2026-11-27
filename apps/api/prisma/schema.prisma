@@ -95,40 +95,42 @@ model BusinessUnit {
 }
 
 model User {
-  id             String        @id @default(cuid())
-  email          String        @unique
+  id                 String        @id @default(cuid())
+  email              String        @unique
   // Company employee id, entered by HR when inviting a candidate.
-  employeeId     String?       @unique
+  employeeId         String?       @unique
   // scrypt hash; null means the account can only sign in by invite link.
-  passwordHash   String?
+  passwordHash       String?
   // True while the account still has the system-set default password.
-  mustChangePassword Boolean   @default(false)
+  mustChangePassword Boolean       @default(false)
   // The default password, AES-GCM encrypted, so admins (staff) and HR (candidates) can see it
   // until the user sets their own. Cleared on password change.
   defaultPasswordEnc String?
   // SHA-256 of the current invite-link token.
-  inviteTokenHash String?      @unique
+  inviteTokenHash    String?       @unique
   // The same invite token, AES-GCM encrypted, so HR can show the link again while it is valid.
   // Cleared when the candidate is blocked; replaced with each new link.
-  inviteTokenEnc  String?
-  inviteExpiresAt DateTime?
-  firstName      String
-  lastName       String
-  department     String
-  location       String
-  businessUnitId String?
-  businessUnit   BusinessUnit? @relation(fields: [businessUnitId], references: [id])
-  role           Role          @default(LEARNER)
-  joiningDate    DateTime      @db.Date
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
+  inviteTokenEnc     String?
+  inviteExpiresAt    DateTime?
+  firstName          String
+  lastName           String
+  department         String
+  location           String
+  businessUnitId     String?
+  businessUnit       BusinessUnit? @relation(fields: [businessUnitId], references: [id])
+  role               Role          @default(LEARNER)
+  joiningDate        DateTime      @db.Date
+  isActive           Boolean       @default(true)
+  // Sessions issued before this time are refused (set on password change or reset).
+  sessionsValidFrom  DateTime?
+  createdAt          DateTime      @default(now())
 
   enrollment      Enrollment?
   moduleProgress  ModuleProgress[]
   userQuestions   UserQuestion[]
   attempts        Attempt[]
   acknowledgments Acknowledgment[]
-  feedback        Feedback[]
+  feedback        Feedback?
   reviews         ContentReview[]
   auditLogs       AuditLog[]
   aiDraft         AiDraft?
@@ -232,21 +234,21 @@ model Step {
 }
 
 model Question {
-  id          String        @id @default(cuid())
-  moduleId    String
-  module      Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  topic       String
-  text        String
-  hint        String
-  explanation String
+  id           String        @id @default(cuid())
+  moduleId     String
+  module       Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  topic        String
+  text         String
+  hint         String
+  explanation  String
   askClipId    String?
   askClip      MediaAsset?   @relation("QuestionAsk", fields: [askClipId], references: [id])
   hintClipId   String?
   hintClip     MediaAsset?   @relation("QuestionHint", fields: [hintClipId], references: [id])
   revealClipId String?
   revealClip   MediaAsset?   @relation("QuestionReveal", fields: [revealClipId], references: [id])
-  status      ContentStatus @default(DRAFT)
-  version     Int           @default(1)
+  status       ContentStatus @default(DRAFT)
+  version      Int           @default(1)
 
   options       QuestionOption[]
   userQuestions UserQuestion[]
@@ -293,6 +295,7 @@ model Attempt {
   createdAt  DateTime       @default(now())
 
   @@unique([userId, questionId, attemptNo])
+  @@index([questionId])
 }
 
 model Enrollment {
@@ -317,6 +320,7 @@ model ModuleProgress {
   completedAt DateTime?
 
   @@id([userId, moduleId])
+  @@index([moduleId, status])
 }
 
 model Acknowledgment {
@@ -349,7 +353,8 @@ model AiDraft {
 
 model Feedback {
   id        String   @id @default(cuid())
-  userId    String
+  // One entry per candidate; submitting again updates it.
+  userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   rating    Int
   comment   String   @default("")
@@ -424,4 +429,7 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+  // Audit visibility filters by who acted (see audit.logic.ts visibleWhere).
+  @@index([actorRole, createdAt])
+  @@index([actorId])
 }

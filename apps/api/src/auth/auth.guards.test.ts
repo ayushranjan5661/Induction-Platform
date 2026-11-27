@@ -47,13 +47,13 @@ const allowed = (controller: ControllerClass, method: string): Role[] =>
   ALL.filter((role) => canReach(controller, method, role));
 
 describe('passwords and invite tokens', () => {
-  it('verifies the right password and rejects a wrong or missing one', () => {
-    const stored = hashPassword('Correct-Horse-9');
+  it('verifies the right password and rejects a wrong or missing one', async () => {
+    const stored = await hashPassword('Correct-Horse-9');
     expect(stored).not.toContain('Correct-Horse-9');
-    expect(verifyPassword('Correct-Horse-9', stored)).toBe(true);
-    expect(verifyPassword('correct-horse-9', stored)).toBe(false);
-    expect(verifyPassword('anything', null)).toBe(false);
-    expect(verifyPassword('anything', 'not-a-hash')).toBe(false);
+    expect(await verifyPassword('Correct-Horse-9', stored)).toBe(true);
+    expect(await verifyPassword('correct-horse-9', stored)).toBe(false);
+    expect(await verifyPassword('anything', null)).toBe(false);
+    expect(await verifyPassword('anything', 'not-a-hash')).toBe(false);
   });
 
   it('generates default passwords that meet the password rules and differ each time', () => {

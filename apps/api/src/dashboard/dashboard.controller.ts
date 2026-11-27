@@ -342,18 +342,24 @@ export class DashboardController {
 
   @Get('feedback')
   async feedback(): Promise<FeedbackDto> {
-    const items = await this.prisma.feedback.findMany({
-      include: { user: true },
-      orderBy: { createdAt: 'desc' },
-      take: 1000,
-    });
-    const total = items.reduce((sum, f) => sum + f.rating, 0);
+    // Average and distribution over every candidate's feedback (same filter as the summary),
+    // not just the latest rows listed below.
+    const where = { user: this.learners };
+    const [items, byRating] = await Promise.all([
+      this.prisma.feedback.findMany({
+        where,
+        include: { user: true },
+        orderBy: { createdAt: 'desc' },
+        take: 1000,
+      }),
+      this.prisma.feedback.groupBy({ by: ['rating'], where, _count: true }),
+    ]);
+    const counts = new Map(byRating.map((g) => [g.rating, g._count]));
+    const count = byRating.reduce((sum, g) => sum + g._count, 0);
+    const total = byRating.reduce((sum, g) => sum + g.rating * g._count, 0);
     return {
-      average: ratio(total, items.length),
-      distribution: [1, 2, 3, 4, 5].map((rating) => ({
-        rating,
-        count: items.filter((f) => f.rating === rating).length,
-      })),
+      average: ratio(total, count),
+      distribution: [1, 2, 3, 4, 5].map((rating) => ({ rating, count: counts.get(rating) ?? 0 })),
       items: items.map((f) => ({
         id: f.id,
         name: `${f.user.firstName} ${f.user.lastName}`,

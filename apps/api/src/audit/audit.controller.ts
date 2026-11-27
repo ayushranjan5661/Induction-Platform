@@ -153,7 +153,11 @@ export class AuditController {
     const gone = ids('user').filter((id) => !users.some((u) => u.id === id));
     if (gone.length > 0) {
       const deletions = await this.prisma.auditLog.findMany({
-        where: { action: { in: ['user.delete', 'candidate.delete'] }, entityId: { in: gone } },
+        where: {
+          entityType: 'user',
+          entityId: { in: gone },
+          action: { in: ['user.delete', 'candidate.delete'] },
+        },
         select: { entityId: true, details: true },
       });
       for (const d of deletions) {

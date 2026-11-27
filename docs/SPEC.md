@@ -136,9 +136,12 @@ Local development uses the machine's own PostgreSQL service on `127.0.0.1:5432`.
 │           └── default-content.ts  # builds it for the seed and "Reset to default"
 ├── packages/
 │   └── shared/              # shared types and Zod schemas
-├── Data/                    # source notes the induction content is written from
+├── assets/
+│   ├── content/             # source notes the induction content is written from
+│   └── characters/          # source renders of the 20 presenter characters (svg, png, gif)
 ├── docs/
 │   └── SPEC.md              # this file
+├── .claude/skills/          # Claude Code skills (toon-avatars makes new characters)
 ├── .env.example
 ├── CLAUDE.md
 └── package.json             # npm workspaces
@@ -186,7 +189,7 @@ Target total duration: about 40-45 minutes.
 
 **Personalization (Phase 1):** Show the employee's first name on screen. In Module 6, present the employee's own business unit first (business-unit steps use the topic `bu-<slug>`).
 
-**Source content:** `Data/Company`, `Data/Founders`, `Data/Culture`, `Data/Policies`, `Data/Compliance`.
+**Source content:** `assets/content/` (`company.md`, `founders.md`, `culture.md`, `policies.md`, `compliance.md`).
 
 ---
 

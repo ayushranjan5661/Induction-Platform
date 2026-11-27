@@ -356,7 +356,7 @@ export const BUSINESS_UNITS = [
 
 export const MODULES: ModuleDef[] = [
   /* ---------------------------------------------------------------- */
-  /* 1. Company Introduction (Data/Company, from levelshift.com)       */
+  /* 1. Company Introduction (assets/content/company.md, from levelshift.com) */
   /* ---------------------------------------------------------------- */
   {
     slug: 'company-introduction',
@@ -767,7 +767,7 @@ export const MODULES: ModuleDef[] = [
   },
 
   /* ---------------------------------------------------------------- */
-  /* 2. Founders' Introduction (Data/Founders, from levelshift.com)    */
+  /* 2. Founders' Introduction (assets/content/founders.md, from levelshift.com) */
   /* ---------------------------------------------------------------- */
   {
     slug: 'founders-introduction',
@@ -1047,7 +1047,7 @@ export const MODULES: ModuleDef[] = [
   },
 
   /* ---------------------------------------------------------------- */
-  /* 3. Company Culture (Data/Culture, from levelshift.com)            */
+  /* 3. Company Culture (assets/content/culture.md, from levelshift.com) */
   /* ---------------------------------------------------------------- */
   {
     slug: 'company-culture',
@@ -1335,7 +1335,7 @@ export const MODULES: ModuleDef[] = [
   },
 
   /* ---------------------------------------------------------------- */
-  /* 4. Company Policies (Data/Policies)                               */
+  /* 4. Company Policies (assets/content/policies.md) */
   /* ---------------------------------------------------------------- */
   {
     slug: 'company-policies',
@@ -1692,7 +1692,7 @@ export const MODULES: ModuleDef[] = [
   },
 
   /* ---------------------------------------------------------------- */
-  /* 5. Compliance and Workplace Safety (Data/Compliance)              */
+  /* 5. Compliance and Workplace Safety (assets/content/compliance.md) */
   /* ---------------------------------------------------------------- */
   {
     slug: 'compliance-and-workplace-safety',

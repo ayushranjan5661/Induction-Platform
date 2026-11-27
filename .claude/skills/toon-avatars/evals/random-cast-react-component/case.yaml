@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: random-cast-react-component
+expected_outcome: |
+  Twelve unique characters are generated with --random 12 and a seed, the spec is saved with --save-spec, SVGs land in the
+  app's public or assets folder, and an Avatar React component referencing them by name (via img) is added with a list or
+  manifest of available names.

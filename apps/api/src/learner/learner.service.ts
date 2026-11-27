@@ -17,7 +17,7 @@ import {
   type StepDto,
   type SummaryDto,
 } from '@induction/shared';
-import type { Avatar, Enrollment, Module, Step } from '@prisma/client';
+import { Prisma, type Avatar, type Enrollment, type Module, type Step } from '@prisma/client';
 import type { AuthUser } from '../auth/auth.types';
 import { toAvatarDto, toSegments } from '../common/mappers';
 import { PrismaService } from '../prisma/prisma.service';
@@ -407,15 +407,23 @@ export class LearnerService {
     const decision = evaluateAttempt(previous, option.isCorrect);
     if (!decision.ok) throw new ConflictException('No attempts left for this question');
 
-    await this.prisma.attempt.create({
-      data: {
-        userId: user.id,
-        questionId,
-        optionId,
-        attemptNo: decision.attemptNo,
-        isCorrect: option.isCorrect,
-      },
-    });
+    try {
+      await this.prisma.attempt.create({
+        data: {
+          userId: user.id,
+          questionId,
+          optionId,
+          attemptNo: decision.attemptNo,
+          isCorrect: option.isCorrect,
+        },
+      });
+    } catch (error) {
+      // Two answers sent at once (a double click): the unique key keeps only the first.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Your earlier answer was already saved. Please continue.');
+      }
+      throw error;
+    }
 
     const correct = question.options.find((o) => o.isCorrect);
     switch (decision.result) {
@@ -489,12 +497,12 @@ export class LearnerService {
     if (enrollment?.status !== 'COMPLETED') {
       throw new ConflictException('Feedback opens once you finish the induction');
     }
-    const existing = await this.prisma.feedback.findFirst({ where: { userId: user.id } });
-    if (existing) {
-      await this.prisma.feedback.update({ where: { id: existing.id }, data: input });
-    } else {
-      await this.prisma.feedback.create({ data: { userId: user.id, ...input } });
-    }
+    // One feedback entry per candidate (unique userId), so a double submit cannot add a second.
+    await this.prisma.feedback.upsert({
+      where: { userId: user.id },
+      update: input,
+      create: { userId: user.id, ...input },
+    });
     return { ok: true };
   }
 

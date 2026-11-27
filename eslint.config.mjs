@@ -11,7 +11,7 @@ export default tseslint.config(
       '**/dist-candidate/**',
       '**/node_modules/**',
       '**/storage/**',
-      'Data/**',
+      'assets/**',
     ],
   },
   js.configs.recommended,
